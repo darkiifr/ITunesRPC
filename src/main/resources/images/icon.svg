@@ -1,0 +1,15 @@
+<svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fond de l'icône -->
+  <rect width="256" height="256" fill="#1DB954" rx="30" ry="30"/>
+  
+  <!-- Cercle central (disque) -->
+  <circle cx="128" cy="128" r="80" fill="#191414"/>
+  <circle cx="128" cy="128" r="25" fill="#1DB954"/>
+  
+  <!-- Ondes sonores -->
+  <path d="M60,100 Q90,60 128,60 Q166,60 196,100" stroke="#FFFFFF" stroke-width="8" fill="none"/>
+  <path d="M70,160 Q95,190 128,190 Q161,190 186,160" stroke="#FFFFFF" stroke-width="8" fill="none"/>
+  
+  <!-- Note de musique -->
+  <path d="M160,90 L160,140 Q160,155 145,155 Q130,155 130,140 Q130,125 145,125 Q152,125 160,132 L160,90 L185,83 L185,65 L160,72 Z" fill="#FFFFFF"/>
+</svg>
