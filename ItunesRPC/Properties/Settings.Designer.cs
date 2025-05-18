@@ -46,5 +46,65 @@ namespace ItunesRPC.Properties {
                 this["MinimizeToTray"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("darkiiuseai")]
+        public string GitHubOwner {
+            get {
+                return ((string)(this["GitHubOwner"]));
+            }
+            set {
+                this["GitHubOwner"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("ITunesRPC")]
+        public string GitHubRepo {
+            get {
+                return ((string)(this["GitHubRepo"]));
+            }
+            set {
+                this["GitHubRepo"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("https://github.com/darkiiuseai/ITunesRPC/releases")]
+        public string GitHubReleaseUrl {
+            get {
+                return ((string)(this["GitHubReleaseUrl"]));
+            }
+            set {
+                this["GitHubReleaseUrl"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool CheckUpdateOnStartup {
+            get {
+                return ((bool)(this["CheckUpdateOnStartup"]));
+            }
+            set {
+                this["CheckUpdateOnStartup"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ShowNotifications {
+            get {
+                return ((bool)(this["ShowNotifications"]));
+            }
+            set {
+                this["ShowNotifications"] = value;
+            }
+        }
     }
 }

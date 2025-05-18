@@ -6,10 +6,10 @@
         xmlns:tb="http://www.hardcodet.net/taskbar"
         xmlns:local="clr-namespace:ItunesRPC"
         mc:Ignorable="d"
-        Title="iTunes RPC" Height="450" Width="600" Icon="/Resources/icon.ico" ResizeMode="CanMinimize">
+        Title="iTunes RPC" Height="450" Width="600" Icon="pack://application:,,,/Resources/icon.ico" ResizeMode="CanMinimize">
     <Window.Resources>
         <tb:TaskbarIcon x:Key="NotifyIcon"
-                         IconSource="/Resources/icon.ico"
+                         IconSource="pack://application:,,,/Resources/icon.ico"
                          ToolTipText="iTunes RPC">
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu>
@@ -44,7 +44,7 @@
             
             <!-- Pochette d'album -->
             <Border Grid.Column="0" Width="150" Height="150" Margin="0,0,10,0" BorderBrush="#CCCCCC" BorderThickness="1">
-                <Image x:Name="AlbumArt" Source="/Resources/default_album.png" Stretch="Uniform"/>
+                <Image x:Name="AlbumArt" Source="pack://application:,,,/Resources/default_album.png" Stretch="Uniform"/>
             </Border>
             
             <!-- Informations sur la musique -->
@@ -77,11 +77,13 @@
                 
                 <StackPanel Grid.Column="0">
                     <CheckBox x:Name="AutoStartCheckBox" Content="Démarrer avec Windows" Margin="0,0,0,5" Checked="AutoStartCheckBox_CheckedChanged" Unchecked="AutoStartCheckBox_CheckedChanged"/>
-                    <CheckBox x:Name="MinimizeToTrayCheckBox" Content="Minimiser dans la zone de notification" IsChecked="True" Margin="0,0,0,5"/>
+                    <CheckBox x:Name="MinimizeToTrayCheckBox" Content="Minimiser dans la zone de notification" IsChecked="True" Margin="0,0,0,5" Checked="MinimizeToTrayCheckBox_CheckedChanged" Unchecked="MinimizeToTrayCheckBox_CheckedChanged"/>
+                    <CheckBox x:Name="ShowNotificationsCheckBox" Content="Afficher les notifications lors des changements de piste" IsChecked="True" Margin="0,0,0,5" Checked="ShowNotificationsCheckBox_CheckedChanged" Unchecked="ShowNotificationsCheckBox_CheckedChanged"/>
                 </StackPanel>
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <Button x:Name="CheckUpdateButton" Content="Vérifier les mises à jour" Padding="10,5" Margin="0,0,10,0" Click="CheckUpdate_Click"/>
+                    <Button x:Name="ConfigUpdateButton" Content="Configurer les mises à jour" Padding="10,5" Margin="0,0,10,0" Click="ConfigUpdate_Click"/>
                     <Button x:Name="AboutButton" Content="À propos" Padding="10,5" Click="About_Click"/>
                 </StackPanel>
             </Grid>

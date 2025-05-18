@@ -284,7 +284,7 @@ namespace ItunesRPC.Services
                 }
 
                 // Sinon, extraire l'image des ressources et la sauvegarder
-                var resourceUri = new Uri("/Resources/default_album.png", UriKind.Relative);
+                var resourceUri = new Uri("pack://application:,,,/Resources/default_album.png", UriKind.Absolute);
                 var resourceStream = Application.GetResourceStream(resourceUri)?.Stream;
                 
                 if (resourceStream != null)

@@ -1,0 +1,72 @@
+<Window x:Class="ItunesRPC.UpdateConfigWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ItunesRPC"
+        mc:Ignorable="d"
+        Title="Configuration des mises à jour" Height="350" Width="500" ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- En-tête -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="Configuration des mises à jour" FontSize="18" FontWeight="Bold" Margin="0,0,0,5"/>
+            <TextBlock Text="Configurez les paramètres de mise à jour depuis GitHub" TextWrapping="Wrap"/>
+            <Separator Margin="0,10,0,0"/>
+        </StackPanel>
+        
+        <!-- Formulaire -->
+        <Grid Grid.Row="1" Margin="0,5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- Propriétaire GitHub -->
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Propriétaire GitHub:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBox Grid.Row="0" Grid.Column="1" x:Name="OwnerTextBox" Margin="0,5" Padding="5,3"/>
+            
+            <!-- Dépôt GitHub -->
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Dépôt GitHub:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBox Grid.Row="1" Grid.Column="1" x:Name="RepoTextBox" Margin="0,5" Padding="5,3"/>
+            
+            <!-- URL des releases -->
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="URL des releases:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBox Grid.Row="2" Grid.Column="1" x:Name="ReleaseUrlTextBox" Margin="0,5" Padding="5,3"/>
+            
+            <!-- Option de vérification au démarrage -->
+            <CheckBox Grid.Row="3" Grid.Column="1" x:Name="CheckUpdateOnStartupCheckBox" Content="Vérifier les mises à jour au démarrage" Margin="0,10,0,0"/>
+            
+            <!-- Informations -->
+            <Border Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" BorderBrush="#CCCCCC" BorderThickness="1" Margin="0,15,0,0" Padding="10" Background="#F5F5F5">
+                <TextBlock TextWrapping="Wrap">
+                    Ces paramètres permettent de configurer la source des mises à jour pour l'application.
+                    <LineBreak/>
+                    <LineBreak/>
+                    Exemple: Pour le dépôt https://github.com/darkiiuseai/ITunesRPC
+                    <LineBreak/>
+                    - Propriétaire: darkiiuseai
+                    - Dépôt: ITunesRPC
+                </TextBlock>
+            </Border>
+        </Grid>
+        
+        <!-- Boutons -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button x:Name="SaveButton" Content="Enregistrer" Width="100" Padding="5" Margin="0,0,10,0" Click="SaveButton_Click"/>
+            <Button x:Name="CancelButton" Content="Annuler" Width="100" Padding="5" Click="CancelButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

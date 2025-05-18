@@ -47,9 +47,14 @@ namespace ItunesRPC
         {
             if (!_isExiting)
             {
-                e.Cancel = true;
-                _mainWindow!.Hide();
-                _notifyIcon!.ShowBalloonTip("iTunes RPC", "L'application continue de fonctionner en arrière-plan.", BalloonIcon.Info);
+                // Vérifier si l'option de minimisation dans la zone de notification est activée
+                if (Settings.Default.MinimizeToTray)
+                {
+                    e.Cancel = true;
+                    _mainWindow!.Hide();
+                    _notifyIcon!.ShowBalloonTip("iTunes RPC", "L'application continue de fonctionner en arrière-plan.", BalloonIcon.Info);
+                }
+                // Sinon, laisser la fenêtre se fermer normalement
             }
         }
 
@@ -81,7 +86,7 @@ namespace ItunesRPC
             Shutdown();
         }
 
-        private void ConfigureAutoStart()
+        public void ConfigureAutoStart()
         {
             try
             {

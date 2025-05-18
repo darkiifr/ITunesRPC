@@ -8,5 +8,20 @@
     <Setting Name="MinimizeToTray" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
+    <Setting Name="GitHubOwner" Type="System.String" Scope="User">
+      <Value Profile="(Default)">darkiiuseai</Value>
+    </Setting>
+    <Setting Name="GitHubRepo" Type="System.String" Scope="User">
+      <Value Profile="(Default)">ITunesRPC</Value>
+    </Setting>
+    <Setting Name="GitHubReleaseUrl" Type="System.String" Scope="User">
+      <Value Profile="(Default)">https://github.com/darkiiuseai/ITunesRPC/releases</Value>
+    </Setting>
+    <Setting Name="CheckUpdateOnStartup" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="ShowNotifications" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
