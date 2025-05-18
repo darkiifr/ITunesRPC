@@ -98,6 +98,7 @@ public class TrackInfo {
                 ", album='" + album + '\'' +
                 ", trackNumber=" + trackNumber +
                 "/" + totalTracks +
-                '}';
+                ", duration='" + duration + '\'' +
+                "}";
     }
 }

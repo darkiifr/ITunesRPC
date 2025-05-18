@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Separator?>
@@ -22,6 +23,14 @@
                      </font>
                   </Label>
                   <Label text="Lancez iTunes ou Apple Music et commencez à écouter de la musique" textAlignment="CENTER" />
+                  <HBox alignment="CENTER" spacing="10.0">
+                     <children>
+                        <Button fx:id="serviceButton" mnemonicParsing="false" onAction="#toggleService" text="Arrêter le service" />
+                     </children>
+                     <padding>
+                        <Insets top="10.0" />
+                     </padding>
+                  </HBox>
                </children>
             </VBox>
             <VBox fx:id="trackInfoBox" alignment="CENTER" spacing="15.0" visible="false">

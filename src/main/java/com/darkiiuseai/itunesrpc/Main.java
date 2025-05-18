@@ -12,7 +12,6 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -186,5 +185,13 @@ public class Main extends Application {
      */
     public SilentModeManager getSilentModeManager() {
         return silentModeManager;
+    }
+    
+    /**
+     * Retourne le moniteur de piste iTunes
+     * @return Le moniteur de piste iTunes
+     */
+    public ITunesTrackMonitor getTrackMonitor() {
+        return trackMonitor;
     }
 }
