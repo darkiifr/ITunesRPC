@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 150 150">
-  <rect width="150" height="150" fill="#333333"/>
-  <circle cx="75" cy="75" r="50" fill="#555555"/>
-  <circle cx="75" cy="75" r="20" fill="#333333"/>
-  <circle cx="75" cy="75" r="5" fill="#555555"/>
-  <text x="75" y="110" font-family="Arial" font-size="12" fill="white" text-anchor="middle">Album inconnu</text>
-  <path d="M75 25 L75 45 M75 105 L75 125 M25 75 L45 75 M105 75 L125 75" stroke="white" stroke-width="2"/>
-</svg>
