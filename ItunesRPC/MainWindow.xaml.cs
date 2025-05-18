@@ -98,13 +98,17 @@ namespace ItunesRPC
                 // Afficher une notification si l'option est activée
                 if (Properties.Settings.Default.ShowNotifications)
                 {
-                    var notifyIcon = (Hardcodet.Wpf.TaskbarNotification.TaskbarIcon)Application.Current.FindResource("NotifyIcon");
-                    if (notifyIcon != null)
+                    var app = Application.Current as App;
+                    if (app != null)
                     {
-                        notifyIcon.ShowBalloonTip(
+                        var notifyIcon = (Hardcodet.Wpf.TaskbarNotification.TaskbarIcon)Application.Current.FindResource("NotifyIcon");
+                        if (notifyIcon != null)
+                        {
+                            notifyIcon.ShowBalloonTip(
                             "iTunes RPC - Nouvelle piste",
                             $"{e.TrackInfo.Name}\npar {e.TrackInfo.Artist}",
                             Hardcodet.Wpf.TaskbarNotification.BalloonIcon.Info);
+                        }
                     }
                 }
             });
@@ -126,15 +130,7 @@ namespace ItunesRPC
             });
         }
 
-        private void ShowWindow_Click(object sender, RoutedEventArgs e)
-        {
-            ((App)Application.Current).ShowMainWindow();
-        }
-
-        private void ExitApplication_Click(object sender, RoutedEventArgs e)
-        {
-            ((App)Application.Current).ExitApplication();
-        }
+        // Les méthodes ShowWindow_Click et ExitApplication_Click ont été déplacées dans App.xaml.cs
 
         private void LoadDefaultAlbumArt()
         {

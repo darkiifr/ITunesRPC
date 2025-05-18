@@ -8,17 +8,7 @@
         mc:Ignorable="d"
         Title="iTunes RPC" Height="450" Width="600" Icon="pack://application:,,,/Resources/icon.ico" ResizeMode="CanMinimize">
     <Window.Resources>
-        <tb:TaskbarIcon x:Key="NotifyIcon"
-                         IconSource="pack://application:,,,/Resources/icon.ico"
-                         ToolTipText="iTunes RPC">
-            <tb:TaskbarIcon.ContextMenu>
-                <ContextMenu>
-                    <MenuItem Header="Ouvrir" Click="ShowWindow_Click"/>
-                    <Separator/>
-                    <MenuItem Header="Quitter" Click="ExitApplication_Click"/>
-                </ContextMenu>
-            </tb:TaskbarIcon.ContextMenu>
-        </tb:TaskbarIcon>
+        <!-- Ressources de la fenêtre -->
     </Window.Resources>
     
     <Grid>

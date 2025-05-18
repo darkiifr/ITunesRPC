@@ -85,6 +85,16 @@ namespace ItunesRPC
             }
             Shutdown();
         }
+        
+        private void ShowWindow_Click(object sender, RoutedEventArgs e)
+        {
+            ShowMainWindow();
+        }
+        
+        private void ExitApplication_Click(object sender, RoutedEventArgs e)
+        {
+            ExitApplication();
+        }
 
         public void ConfigureAutoStart()
         {
