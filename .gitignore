@@ -1,0 +1,45 @@
+## Ignorer les fichiers et dossiers générés par Visual Studio
+.vs/
+.vscode/
+
+## Ignorer les fichiers binaires et de sortie
+bin/
+obj/
+
+## Ignorer les fichiers de packages NuGet
+packages/
+*.nupkg
+
+## Ignorer les fichiers de build
+[Dd]ebug/
+[Rr]elease/
+[Bb]uild/
+[Bb]in/
+[Oo]bj/
+
+## Ignorer les fichiers de sauvegarde et temporaires
+*~
+*.swp
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.dbmdl
+*.dbproj.schemaview
+*.jfm
+*.pfx
+*.publishsettings
+
+## Ignorer les fichiers de logs
+*.log
+*.tlog
+
+## Ignorer les fichiers de cache ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+## Ignorer les fichiers spécifiques à l'application
+*.tmp
+*.temp
+ItunesRPC/Resources/artwork_*.png
