@@ -10,7 +10,7 @@ namespace ItunesRPC.Services
     public class DiscordRpcService
     {
         private DiscordRpcClient? _client;
-        private readonly string _applicationId = "1234567890123456789"; // À remplacer par votre ID d'application Discord
+        private readonly string _applicationId = "1369005012486852649"; // À remplacer par votre ID d'application Discord
         private Timer? _reconnectTimer;
         private bool _isReconnecting = false;
         private const int RECONNECT_INTERVAL = 30000; // 30 secondes
