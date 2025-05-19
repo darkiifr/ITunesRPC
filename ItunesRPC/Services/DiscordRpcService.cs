@@ -10,10 +10,16 @@ namespace ItunesRPC.Services
     public class DiscordRpcService
     {
         private DiscordRpcClient? _client;
-        private readonly string _applicationId = "1369005012486852649"; // À remplacer par votre ID d'application Discord
+        private readonly string _applicationId = "1369005012486852649"; // ID d'application Discord configuré
         private Timer? _reconnectTimer;
         private bool _isReconnecting = false;
         private const int RECONNECT_INTERVAL = 30000; // 30 secondes
+        
+        // Propriété pour stocker la piste en cours
+        public TrackInfo? CurrentTrack { get; private set; }
+        
+        // Événement pour notifier les changements de statut de connexion
+        public event EventHandler<DiscordConnectionStatusEventArgs>? ConnectionStatusChanged;
 
         public DiscordRpcService()
         {
@@ -67,7 +73,7 @@ namespace ItunesRPC.Services
             }
         }
 
-        public void UpdatePresence(TrackInfo trackInfo)
+        public void UpdatePresence(TrackInfo trackInfo, string source = "iTunes")
         {
             try
             {
@@ -78,16 +84,19 @@ namespace ItunesRPC.Services
 
                 if (_client != null && _client.IsInitialized)
                 {
+                    // Stocker la piste en cours
+                    CurrentTrack = trackInfo;
+                    
                     var presence = new RichPresence()
                     {
                         Details = trackInfo.Name,
                         State = $"par {trackInfo.Artist}",
                         Assets = new Assets()
                         {
-                            LargeImageKey = "itunes_logo", // Clé d'image définie dans le portail développeur Discord
+                            LargeImageKey = source.ToLower().Contains("apple") ? "apple_music_logo" : "itunes_logo", // Clé d'image définie dans le portail développeur Discord
                             LargeImageText = trackInfo.Album,
                             SmallImageKey = "play_icon",
-                            SmallImageText = "En cours de lecture"
+                            SmallImageText = $"Via {source}"
                         },
                         Timestamps = new Timestamps()
                         {
@@ -95,6 +104,9 @@ namespace ItunesRPC.Services
                             End = trackInfo.EndTime
                         }
                     };
+                    
+                    // Notifier que la connexion est établie
+                    ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(true));
 
                     _client.SetPresence(presence);
                 }
@@ -111,11 +123,40 @@ namespace ItunesRPC.Services
         {
             try
             {
-                _client?.ClearPresence();
+                if (_client != null && _client.IsInitialized)
+                {
+                    _client.ClearPresence();
+                    
+                    // Réinitialiser la piste en cours
+                    if (CurrentTrack != null)
+                    {
+                        CurrentTrack.IsPlaying = false;
+                    }
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de l'effacement de la présence Discord: {ex.Message}");
+                Console.WriteLine($"Erreur lors de l'effacement de la présence: {ex.Message}");
+            }
+        }
+        
+        public void Reconnect()
+        {
+            try
+            {
+                // Fermer la connexion existante
+                _client?.Dispose();
+                _client = null;
+                
+                // Réinitialiser
+                Initialize();
+                
+                // Notifier que la tentative de reconnexion a été lancée
+                ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(false, "Tentative de reconnexion..."));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la reconnexion: {ex.Message}");
             }
         }
 

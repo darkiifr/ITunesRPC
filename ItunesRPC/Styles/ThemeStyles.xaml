@@ -1,0 +1,120 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <!-- Thème sombre (par défaut) -->
+    <ResourceDictionary x:Key="DarkTheme">
+        <!-- Couleurs principales -->
+        <Color x:Key="PrimaryColor">#2D2D30</Color>
+        <Color x:Key="SecondaryColor">#3E3E42</Color>
+        <Color x:Key="AccentColor">#007ACC</Color>
+        <Color x:Key="TextPrimaryColor">#FFFFFF</Color>
+        <Color x:Key="TextSecondaryColor">#CCCCCC</Color>
+        <Color x:Key="BorderColor">#555555</Color>
+        <Color x:Key="BackgroundColor">#252526</Color>
+        <Color x:Key="HoverColor">#404045</Color>
+        <Color x:Key="AppBackgroundColor">#1E1E1E</Color>
+        <Color x:Key="CardBackgroundColor">#2A2A2D</Color>
+    </ResourceDictionary>
+    
+    <!-- Thème clair -->
+    <ResourceDictionary x:Key="LightTheme">
+        <!-- Couleurs principales -->
+        <Color x:Key="PrimaryColor">#F0F0F0</Color>
+        <Color x:Key="SecondaryColor">#E5E5E5</Color>
+        <Color x:Key="AccentColor">#0078D7</Color>
+        <Color x:Key="TextPrimaryColor">#000000</Color>
+        <Color x:Key="TextSecondaryColor">#333333</Color>
+        <Color x:Key="BorderColor">#CCCCCC</Color>
+        <Color x:Key="BackgroundColor">#FFFFFF</Color>
+        <Color x:Key="HoverColor">#E0E0E0</Color>
+        <Color x:Key="AppBackgroundColor">#F5F5F5</Color>
+        <Color x:Key="CardBackgroundColor">#FFFFFF</Color>
+    </ResourceDictionary>
+    
+    <!-- Thème bleu -->
+    <ResourceDictionary x:Key="BlueTheme">
+        <!-- Couleurs principales -->
+        <Color x:Key="PrimaryColor">#1E3A5F</Color>
+        <Color x:Key="SecondaryColor">#2A4973</Color>
+        <Color x:Key="AccentColor">#00AEFF</Color>
+        <Color x:Key="TextPrimaryColor">#FFFFFF</Color>
+        <Color x:Key="TextSecondaryColor">#E0E0E0</Color>
+        <Color x:Key="BorderColor">#3A5A83</Color>
+        <Color x:Key="BackgroundColor">#152A45</Color>
+        <Color x:Key="HoverColor">#2C5086</Color>
+        <Color x:Key="AppBackgroundColor">#0F1E32</Color>
+        <Color x:Key="CardBackgroundColor">#1E3A5F</Color>
+    </ResourceDictionary>
+    
+    <!-- Thème violet -->
+    <ResourceDictionary x:Key="PurpleTheme">
+        <!-- Couleurs principales -->
+        <Color x:Key="PrimaryColor">#4A266A</Color>
+        <Color x:Key="SecondaryColor">#5D3A7E</Color>
+        <Color x:Key="AccentColor">#9C27B0</Color>
+        <Color x:Key="TextPrimaryColor">#FFFFFF</Color>
+        <Color x:Key="TextSecondaryColor">#E0E0E0</Color>
+        <Color x:Key="BorderColor">#6E4A8E</Color>
+        <Color x:Key="BackgroundColor">#3A1D54</Color>
+        <Color x:Key="HoverColor">#5D3A7E</Color>
+        <Color x:Key="AppBackgroundColor">#2A1540</Color>
+        <Color x:Key="CardBackgroundColor">#4A266A</Color>
+    </ResourceDictionary>
+    
+    <!-- Thème vert -->
+    <ResourceDictionary x:Key="GreenTheme">
+        <!-- Couleurs principales -->
+        <Color x:Key="PrimaryColor">#1E5F34</Color>
+        <Color x:Key="SecondaryColor">#2A7349</Color>
+        <Color x:Key="AccentColor">#00C853</Color>
+        <Color x:Key="TextPrimaryColor">#FFFFFF</Color>
+        <Color x:Key="TextSecondaryColor">#E0E0E0</Color>
+        <Color x:Key="BorderColor">#3A835E</Color>
+        <Color x:Key="BackgroundColor">#15452A</Color>
+        <Color x:Key="HoverColor">#2C8650</Color>
+        <Color x:Key="AppBackgroundColor">#0F3220</Color>
+        <Color x:Key="CardBackgroundColor">#1E5F34</Color>
+    </ResourceDictionary>
+    
+    <!-- Thème orange -->
+    <ResourceDictionary x:Key="OrangeTheme">
+        <!-- Couleurs principales -->
+        <Color x:Key="PrimaryColor">#5F3A1E</Color>
+        <Color x:Key="SecondaryColor">#73492A</Color>
+        <Color x:Key="AccentColor">#FF9800</Color>
+        <Color x:Key="TextPrimaryColor">#FFFFFF</Color>
+        <Color x:Key="TextSecondaryColor">#E0E0E0</Color>
+        <Color x:Key="BorderColor">#835E3A</Color>
+        <Color x:Key="BackgroundColor">#452A15</Color>
+        <Color x:Key="HoverColor">#86502C</Color>
+        <Color x:Key="AppBackgroundColor">#32200F</Color>
+        <Color x:Key="CardBackgroundColor">#5F3A1E</Color>
+    </ResourceDictionary>
+    
+    <!-- Thème rouge -->
+    <ResourceDictionary x:Key="RedTheme">
+        <!-- Couleurs principales -->
+        <Color x:Key="PrimaryColor">#5F1E1E</Color>
+        <Color x:Key="SecondaryColor">#732A2A</Color>
+        <Color x:Key="AccentColor">#E53935</Color>
+        <Color x:Key="TextPrimaryColor">#FFFFFF</Color>
+        <Color x:Key="TextSecondaryColor">#E0E0E0</Color>
+        <Color x:Key="BorderColor">#833A3A</Color>
+        <Color x:Key="BackgroundColor">#451515</Color>
+        <Color x:Key="HoverColor">#862C2C</Color>
+        <Color x:Key="AppBackgroundColor">#320F0F</Color>
+        <Color x:Key="CardBackgroundColor">#5F1E1E</Color>
+    </ResourceDictionary>
+    
+    <!-- Brosses dynamiques qui seront mises à jour lors du changement de thème -->
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}"/>
+    <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource SecondaryColor}"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}"/>
+    <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}"/>
+    <SolidColorBrush x:Key="HoverBrush" Color="{StaticResource HoverColor}"/>
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="{StaticResource AppBackgroundColor}"/>
+    <SolidColorBrush x:Key="CardBackgroundBrush" Color="{StaticResource CardBackgroundColor}"/>
+</ResourceDictionary>

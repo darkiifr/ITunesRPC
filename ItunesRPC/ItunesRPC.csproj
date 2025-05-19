@@ -16,6 +16,9 @@
     <None Remove="Resources\icon.ico" />
     <None Remove="Resources\icon.png" />
     <None Remove="Resources\default_album.png" />
+    <None Remove="Styles\ModernStyles.xaml" />
+    <None Remove="Styles\ToolbarStyles.xaml" />
+    <None Remove="Styles\ThemeStyles.xaml" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,6 +27,7 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Octokit" Version="14.0.0" />
     <PackageReference Include="System.Management" Version="7.0.0" />
+  <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
   </ItemGroup>
 
   <ItemGroup>

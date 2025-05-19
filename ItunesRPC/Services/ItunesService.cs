@@ -222,6 +222,8 @@ namespace ItunesRPC.Services
                     Name = currentTrack.Name,
                     Artist = currentTrack.Artist,
                     Album = currentTrack.Album,
+                    Genre = currentTrack.Genre,
+                    Year = currentTrack.Year,
                     TrackNumber = currentTrack.TrackNumber,
                     TrackCount = currentTrack.TrackCount,
                     IsPlaying = iTunes.PlayerState == ITPlayerState.ITPlayerStatePlaying,
@@ -249,17 +251,33 @@ namespace ItunesRPC.Services
                 if (artwork != null && artwork.Count > 0)
                 {
                     var firstArtwork = artwork.get_Item(1); // L'index commence à 1 dans l'API iTunes
-                    string artworkPath = Path.Combine(_tempFolder, $"artwork_{track.Artist}_{track.Name}.png");
                     
-                    // Supprimer le fichier s'il existe déjà
-                    if (File.Exists(artworkPath))
+                    // Créer un nom de fichier valide en remplaçant les caractères invalides
+                    string safeArtist = string.Join("_", track.Artist.Split(Path.GetInvalidFileNameChars()));
+                    string safeName = string.Join("_", track.Name.Split(Path.GetInvalidFileNameChars()));
+                    string artworkPath = Path.Combine(_tempFolder, $"artwork_{safeArtist}_{safeName}.png");
+                    
+                    try
                     {
-                        File.Delete(artworkPath);
+                        // Supprimer le fichier s'il existe déjà
+                        if (File.Exists(artworkPath))
+                        {
+                            File.Delete(artworkPath);
+                        }
+                        
+                        // Sauvegarder l'artwork dans un fichier temporaire
+                        firstArtwork.SaveArtworkToFile(artworkPath);
+                        
+                        // Vérifier que le fichier a bien été créé
+                        if (File.Exists(artworkPath))
+                        {
+                            return artworkPath;
+                        }
                     }
-                    
-                    // Sauvegarder l'artwork dans un fichier temporaire
-                    firstArtwork.SaveArtworkToFile(artworkPath);
-                    return artworkPath;
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Erreur lors de la sauvegarde de la pochette: {ex.Message}");
+                    }
                 }
             }
             catch (Exception ex)

@@ -1,0 +1,133 @@
+<Window x:Class="ItunesRPC.ThemeSelector"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ItunesRPC"
+        mc:Ignorable="d"
+        Title="Sélecteur de thème" Height="450" Width="600" 
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Style="{StaticResource ModernWindow}">
+    
+    <Grid Background="{StaticResource AppBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- En-tête -->
+        <Border Grid.Row="0" Background="{StaticResource PrimaryBrush}" Padding="15">
+            <StackPanel>
+                <TextBlock Text="Personnalisation du thème" Style="{StaticResource TitleTextBlock}"/>
+                <TextBlock Text="Choisissez un thème pour personnaliser l'apparence de l'application" Style="{StaticResource SubtitleTextBlock}"/>
+            </StackPanel>
+        </Border>
+        
+        <!-- Contenu principal - Grille de thèmes et options -->
+        <ScrollViewer Grid.Row="1" Margin="20" VerticalScrollBarVisibility="Auto">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Sélection de thème -->
+                <StackPanel Grid.Row="0">
+                    <TextBlock Text="Thèmes disponibles" Style="{StaticResource SectionTitleTextBlock}" Margin="0,0,0,10"/>
+                    
+                    <ItemsControl x:Name="ThemesItemsControl">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="ThemeCard" Margin="10" Width="150" Height="150" CornerRadius="8" BorderThickness="2" BorderBrush="Transparent" Background="{Binding BackgroundColor}" Cursor="Hand">
+                                    <Border.Effect>
+                                        <DropShadowEffect ShadowDepth="2" BlurRadius="5" Opacity="0.3"/>
+                                    </Border.Effect>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        
+                                        <!-- Aperçu du thème -->
+                                        <Grid Grid.Row="0" Margin="10,10,10,5">
+                                            <Border Background="{Binding PrimaryColor}" Height="30" VerticalAlignment="Top" CornerRadius="4"/>
+                                            <Border Background="{Binding SecondaryColor}" Height="60" Margin="0,35,0,0" CornerRadius="4">
+                                                <Border Background="{Binding CardBackgroundColor}" Margin="5" CornerRadius="2"/>
+                                            </Border>
+                                            <Border Background="{Binding AccentColor}" Height="10" Width="40" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,10,0,0" CornerRadius="2"/>
+                                        </Grid>
+                                        
+                                        <!-- Nom du thème -->
+                                        <Border Grid.Row="1" Background="{Binding PrimaryColor}" CornerRadius="0,0,8,8">
+                                            <TextBlock Text="{Binding Name}" Foreground="{Binding TextColor}" FontWeight="SemiBold" Padding="10,5" HorizontalAlignment="Center"/>
+                                        </Border>
+                                        
+                                        <!-- Indicateur de sélection -->
+                                        <Border x:Name="SelectionIndicator" Grid.RowSpan="2" BorderBrush="{Binding AccentColor}" BorderThickness="3" CornerRadius="8" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                        <Setter TargetName="SelectionIndicator" Property="Visibility" Value="Visible"/>
+                                        <Setter TargetName="ThemeCard" Property="BorderBrush" Value="{Binding AccentColor}"/>
+                                    </DataTrigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="ThemeCard" Property="BorderBrush" Value="{Binding AccentColor}"/>
+                                    </Trigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+                
+                <!-- Options d'apparence -->
+                <StackPanel Grid.Row="1" Margin="0,20,0,0">
+                    <TextBlock Text="Options d'apparence" Style="{StaticResource SectionTitleTextBlock}" Margin="0,0,0,10"/>
+                    
+                    <CheckBox x:Name="UseCustomBackgroundCheckBox" Content="Utiliser un fond d'écran personnalisé" Style="{StaticResource AppearanceOptionCheckBox}" Checked="UseCustomBackground_CheckedChanged" Unchecked="UseCustomBackground_CheckedChanged"/>
+                    
+                    <Grid Margin="20,5,0,10" IsEnabled="{Binding ElementName=UseCustomBackgroundCheckBox, Path=IsChecked}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="CustomBackgroundPathTextBox" IsReadOnly="True" Margin="0,0,10,0"/>
+                        <Button Content="Parcourir..." Grid.Column="1" Style="{StaticResource ModernButton}" Click="BrowseBackground_Click"/>
+                    </Grid>
+                    
+                    <TextBlock Text="Opacité du fond:" Style="{StaticResource LabelTextBlock}"/>
+                    <Slider x:Name="BackgroundOpacitySlider" Style="{StaticResource AppearanceSlider}" Value="0.15" ValueChanged="BackgroundOpacity_ValueChanged"/>
+                    
+                    <CheckBox x:Name="EnableBlurEffectCheckBox" Content="Activer l'effet de flou" Style="{StaticResource AppearanceOptionCheckBox}" Checked="EnableBlurEffect_CheckedChanged" Unchecked="EnableBlurEffect_CheckedChanged"/>
+                    <CheckBox x:Name="EnableAnimationsCheckBox" Content="Activer les animations" Style="{StaticResource AppearanceOptionCheckBox}" IsChecked="True" Checked="EnableAnimations_CheckedChanged" Unchecked="EnableAnimations_CheckedChanged"/>
+                    <CheckBox x:Name="EnableRoundedCornersCheckBox" Content="Activer les coins arrondis" Style="{StaticResource AppearanceOptionCheckBox}" IsChecked="True" Checked="EnableRoundedCorners_CheckedChanged" Unchecked="EnableRoundedCorners_CheckedChanged"/>
+                    <CheckBox x:Name="EnableShadowsCheckBox" Content="Activer les ombres" Style="{StaticResource AppearanceOptionCheckBox}" IsChecked="True" Checked="EnableShadows_CheckedChanged" Unchecked="EnableShadows_CheckedChanged"/>
+                </StackPanel>
+            </Grid>
+         </ScrollViewer>
+        
+        <!-- Pied de page avec boutons d'action -->
+        <Border Grid.Row="2" Background="{StaticResource PrimaryBrush}" Padding="15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Text="Les changements seront appliqués immédiatement" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                
+                <Button x:Name="ResetButton" Content="Réinitialiser" Grid.Column="1" Style="{StaticResource ModernButton}" Margin="0,0,10,0" Click="Reset_Click" Tag="&#xE777;"/>
+                <Button x:Name="ApplyButton" Content="Appliquer" Grid.Column="2" Style="{StaticResource ModernButton}" Click="Apply_Click" Tag="&#xE73E;"/>
+            </Grid>
+        </Border>
+
+    </Grid>
+</Window>

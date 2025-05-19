@@ -1,5 +1,5 @@
-# Utiliser l'image SDK .NET pour la compilation
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+# Utiliser l'image SDK .NET pour Windows pour la compilation
+FROM mcr.microsoft.com/dotnet/sdk:6.0-windowsdesktop AS build
 WORKDIR /src
 
 # Copier les fichiers projet et restaurer les dépendances
@@ -13,14 +13,19 @@ RUN dotnet build "ItunesRPC.csproj" -c Release -o /app/build
 
 # Publier l'application
 FROM build AS publish
-RUN dotnet publish "ItunesRPC.csproj" -c Release -o /app/publish
+RUN dotnet publish "ItunesRPC.csproj" -c Release -o /app/publish /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true
 
-# Créer l'image finale
-FROM mcr.microsoft.com/dotnet/runtime:6.0 AS final
+# Créer l'image finale avec support pour WPF
+FROM mcr.microsoft.com/dotnet/desktop-runtime:6.0-windowsdesktop AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-# Note: Cette application nécessite une interface graphique Windows pour fonctionner correctement
-# Ce Dockerfile est principalement utilisé pour la distribution et le packaging
+# Exposer le port pour Discord RPC
+EXPOSE 6463
 
-ENTRYPOINT ["dotnet", "ItunesRPC.dll"]
+# Note: Cette application nécessite:
+# - Une interface graphique Windows
+# - iTunes installé sur l'hôte
+# - Discord installé sur l'hôte pour la fonctionnalité Rich Presence
+
+ENTRYPOINT ["ItunesRPC.exe"]

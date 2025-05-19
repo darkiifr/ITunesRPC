@@ -1,5 +1,4 @@
 using Octokit;
-using Octokit;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -80,11 +79,23 @@ namespace ItunesRPC.Services
             }
         }
 
+        // Événement pour notifier les changements de statut de mise à jour
+        public event EventHandler<string> UpdateStatusChanged;
+        
+        // Méthode pour notifier les changements de statut
+        private void NotifyUpdateStatus(string status)
+        {
+            UpdateStatusChanged?.Invoke(this, status);
+        }
+        
         public async Task CheckForUpdatesAsync(bool showNoUpdateMessage = false)
         {
             try
             {
-                // Afficher un message de progression
+                // Notifier le début de la vérification
+                NotifyUpdateStatus("Vérification des mises à jour en cours...");
+                
+                // Afficher un message de progression uniquement si demandé explicitement
                 if (showNoUpdateMessage)
                 {
                     MessageBox.Show(
@@ -94,53 +105,145 @@ namespace ItunesRPC.Services
                         MessageBoxImage.Information);
                 }
                 
-                var github = new GitHubClient(new ProductHeaderValue("ItunesRPC"));
-                var releases = await github.Repository.Release.GetAll(_owner, _repo);
-
-                if (releases.Count > 0)
+                // Vérifier que les paramètres GitHub sont valides
+                if (string.IsNullOrEmpty(_owner) || string.IsNullOrEmpty(_repo))
                 {
-                    var latestRelease = releases[0];
-                    var latestVersionString = latestRelease.TagName.TrimStart('v');
-
-                    if (Version.TryParse(latestVersionString, out Version? latestVersion) && latestVersion != null)
+                    NotifyUpdateStatus("Paramètres de mise à jour invalides");
+                    if (showNoUpdateMessage)
                     {
-                        if (latestVersion > _currentVersion)
-                        {
-                            var result = MessageBox.Show(
-                                $"Une nouvelle version est disponible: {latestVersion}\n\nVotre version actuelle: {_currentVersion}\n\nChangements:\n{latestRelease.Body}\n\nSouhaitez-vous télécharger la mise à jour maintenant?",
-                                "Mise à jour disponible",
-                                MessageBoxButton.YesNo,
-                                MessageBoxImage.Information);
-
-                            if (result == MessageBoxResult.Yes)
-                            {
-                                // Télécharger et installer la mise à jour
-                                await DownloadAndInstallUpdateAsync(latestRelease);
-                            }
-                        }
-                        else if (showNoUpdateMessage)
+                        MessageBox.Show(
+                            "Les paramètres GitHub ne sont pas configurés correctement. Veuillez les configurer dans les paramètres.",
+                            "Erreur de mise à jour",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                    }
+                    return;
+                }
+                
+                NotifyUpdateStatus("Connexion à GitHub...");
+                
+                // Créer un client GitHub avec un timeout raisonnable
+                var github = new GitHubClient(new ProductHeaderValue("ITunesRPC-UpdateCheck"));
+                
+                // Obtenir la dernière release avec gestion des erreurs réseau
+                try {
+                    NotifyUpdateStatus("Recherche de nouvelles versions...");
+                    var releases = await github.Repository.Release.GetAll(_owner, _repo);
+                    var latestRelease = releases.FirstOrDefault();
+                    
+                    if (latestRelease == null)
+                    {
+                        NotifyUpdateStatus("Aucune mise à jour disponible");
+                        if (showNoUpdateMessage)
                         {
                             MessageBox.Show(
-                                $"Vous utilisez déjà la dernière version: {_currentVersion}",
-                                "Pas de mise à jour disponible",
+                                "Aucune mise à jour disponible.",
+                                "Mise à jour",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Information);
+                        }
+                        return;
+                    }
+                    
+                    // Extraire la version de la release
+                    string tagName = latestRelease.TagName.TrimStart('v');
+                    if (!Version.TryParse(tagName, out Version? latestVersion) || latestVersion == null)
+                    {
+                        NotifyUpdateStatus("Erreur: Format de version invalide");
+                        if (showNoUpdateMessage)
+                        {
+                            MessageBox.Show(
+                                "Impossible de déterminer la version de la dernière mise à jour.",
+                                "Erreur de mise à jour",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+                        }
+                        return;
+                    }
+                    
+                    // Comparer les versions
+                    if (latestVersion > _currentVersion)
+                    {
+                        // Une mise à jour est disponible
+                        NotifyUpdateStatus($"Mise à jour disponible: v{latestVersion}");
+                        var result = MessageBox.Show(
+                            $"Une nouvelle version est disponible: {latestVersion}\n\nVersion actuelle: {_currentVersion}\n\nVoulez-vous la télécharger maintenant?",
+                            "Mise à jour disponible",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Information);
+                            
+                        if (result == MessageBoxResult.Yes)
+                        {
+                            NotifyUpdateStatus("Ouverture du navigateur pour téléchargement...");
+                            // Ouvrir le navigateur vers la page de release
+                            try {
+                                Process.Start(new ProcessStartInfo
+                                {
+                                    FileName = latestRelease.HtmlUrl,
+                                    UseShellExecute = true
+                                });
+                            }
+                            catch (Exception ex) {
+                                NotifyUpdateStatus("Erreur lors de l'ouverture du navigateur");
+                                MessageBox.Show(
+                                    $"Impossible d'ouvrir le navigateur: {ex.Message}\n\nVeuillez visiter manuellement: {latestRelease.HtmlUrl}",
+                                    "Erreur",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Error);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Aucune mise à jour disponible
+                        NotifyUpdateStatus($"Vous utilisez la dernière version ({_currentVersion})");
+                        if (showNoUpdateMessage)
+                        {
+                            MessageBox.Show(
+                                $"Vous utilisez déjà la dernière version ({_currentVersion}).",
+                                "Mise à jour",
                                 MessageBoxButton.OK,
                                 MessageBoxImage.Information);
                         }
                     }
                 }
+                catch (Octokit.RateLimitExceededException)
+                {
+                    NotifyUpdateStatus("Limite de requêtes GitHub dépassée. Réessayez plus tard.");
+                    if (showNoUpdateMessage)
+                    {
+                        MessageBox.Show(
+                            "Limite de requêtes GitHub dépassée. Veuillez réessayer plus tard.",
+                            "Erreur de mise à jour",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
+                    }
+                }
+                catch (Octokit.NotFoundException)
+                {
+                    NotifyUpdateStatus("Dépôt GitHub non trouvé. Vérifiez les paramètres.");
+                    if (showNoUpdateMessage)
+                    {
+                        MessageBox.Show(
+                            $"Le dépôt {_owner}/{_repo} n'a pas été trouvé. Vérifiez les paramètres de mise à jour.",
+                            "Erreur de mise à jour",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                    }
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la vérification des mises à jour: {ex.Message}");
-                
+                NotifyUpdateStatus($"Erreur: {ex.Message}");
                 if (showNoUpdateMessage)
                 {
                     MessageBox.Show(
-                        $"Erreur lors de la vérification des mises à jour: {ex.Message}\n\nVérifiez que les paramètres de mise à jour sont corrects dans les options.",
-                        "Erreur",
+                        $"Erreur lors de la vérification des mises à jour: {ex.Message}",
+                        "Erreur de mise à jour",
                         MessageBoxButton.OK,
                         MessageBoxImage.Error);
                 }
+                Console.WriteLine($"Erreur lors de la vérification des mises à jour: {ex.Message}");
             }
         }
 
