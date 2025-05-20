@@ -121,28 +121,5 @@ namespace ItunesRPC.Services
         }
     }
     
-    // Classes d'événements étendues pour inclure la source de musique
-    public class TrackInfoEventArgs : EventArgs
-    {
-        public TrackInfo TrackInfo { get; }
-        public string? Source { get; }
-
-        public TrackInfoEventArgs(TrackInfo trackInfo, string? source = null)
-        {
-            TrackInfo = trackInfo;
-            Source = source;
-        }
-    }
-
-    public class PlayStateEventArgs : EventArgs
-    {
-        public bool IsPlaying { get; }
-        public string? Source { get; }
-
-        public PlayStateEventArgs(bool isPlaying, string? source = null)
-        {
-            IsPlaying = isPlaying;
-            Source = source;
-        }
-    }
+    // Les classes d'événements ont été déplacées vers EventArgs.cs
 }

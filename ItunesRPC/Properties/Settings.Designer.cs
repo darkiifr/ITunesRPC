@@ -106,5 +106,41 @@ namespace ItunesRPC.Properties {
                 this["ShowNotifications"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int CurrentTheme {
+            get {
+                return ((int)(this["CurrentTheme"]));
+            }
+            set {
+                this["CurrentTheme"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool UseCustomBackground {
+            get {
+                return ((bool)(this["UseCustomBackground"]));
+            }
+            set {
+                this["UseCustomBackground"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string CustomBackgroundPath {
+            get {
+                return ((string)(this["CustomBackgroundPath"]));
+            }
+            set {
+                this["CustomBackgroundPath"] = value;
+            }
+        }
     }
 }

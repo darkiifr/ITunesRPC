@@ -10,6 +10,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using Microsoft.Win32;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace ItunesRPC
 {
@@ -133,8 +134,30 @@ namespace ItunesRPC
         
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // Appliquer les ajustements de taille initiaux
-            MainWindow_SizeChanged(this, new SizeChangedEventArgs(this, new Size(0, 0), this.ActualSize));
+            // Appliquer les ajustements de taille initiaux en utilisant la taille actuelle de la fenêtre
+            double width = this.ActualWidth;
+            double height = this.ActualHeight;
+            
+            // Simuler un événement de redimensionnement en ajustant manuellement les éléments
+            if (width < 850)
+            {
+                TrackNameText.FontSize = 14;
+                ArtistText.FontSize = 14;
+            }
+            else
+            {
+                TrackNameText.FontSize = 16;
+                ArtistText.FontSize = 16;
+            }
+            
+            if (height < 550)
+            {
+                TrackProgressBar.Margin = new Thickness(0, 5, 0, 0);
+            }
+            else
+            {
+                TrackProgressBar.Margin = new Thickness(0, 10, 0, 0);
+            }
             
             // Mettre à jour le statut de l'application
             AppStatusText.Text = "Application démarrée - En attente de musique";
@@ -285,6 +308,17 @@ namespace ItunesRPC
             if (currentTrack != null && currentTrack.IsPlaying)
             {
                 TrackProgressBar.Value = currentTrack.ProgressPercentage;
+                
+                // Calculer le temps écoulé et le temps restant
+                TimeSpan elapsed = DateTime.Now - currentTrack.StartTime;
+                TimeSpan remaining = currentTrack.EndTime - DateTime.Now;
+                
+                // Mettre à jour les affichages de temps (si ces éléments existent dans l'interface)
+                if (ElapsedTimeText != null)
+                    ElapsedTimeText.Text = string.Format("{0:mm\\:ss}", elapsed);
+                
+                if (RemainingTimeText != null)
+                    RemainingTimeText.Text = string.Format("-{0:mm\\:ss}", remaining);
             }
         }
         

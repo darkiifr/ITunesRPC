@@ -80,7 +80,7 @@ namespace ItunesRPC.Services
         }
 
         // Événement pour notifier les changements de statut de mise à jour
-        public event EventHandler<string> UpdateStatusChanged;
+        public event EventHandler<string>? UpdateStatusChanged;
         
         // Méthode pour notifier les changements de statut
         private void NotifyUpdateStatus(string status)

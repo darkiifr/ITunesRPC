@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -12,8 +13,8 @@ namespace ItunesRPC
 {
     public partial class ThemeSelector : Window
     {
-        private ObservableCollection<ThemeItem> _themes;
-        private string _selectedBackgroundPath;
+        private ObservableCollection<ThemeItem> _themes = new ObservableCollection<ThemeItem>();
+        private string _selectedBackgroundPath = string.Empty;
         private ThemeManager.AppTheme _selectedTheme;
         
         public ThemeSelector()
@@ -23,11 +24,23 @@ namespace ItunesRPC
             
             // Charger les paramètres actuels
             _selectedTheme = ThemeManager.CurrentTheme;
-            UseCustomBackgroundCheckBox.IsChecked = Properties.Settings.Default.UseCustomBackground;
-            _selectedBackgroundPath = Properties.Settings.Default.CustomBackgroundPath;
             
-            // Activer/désactiver le bouton de sélection d'image
-            SelectBackgroundButton.IsEnabled = UseCustomBackgroundCheckBox.IsChecked == true;
+            // Vérifier si les propriétés existent dans Settings
+            if (Properties.Settings.Default.Properties["UseCustomBackground"] != null)
+            {
+                UseCustomBackgroundCheckBox.IsChecked = (bool)Properties.Settings.Default["UseCustomBackground"];
+            }
+            
+            if (Properties.Settings.Default.Properties["CustomBackgroundPath"] != null)
+            {
+                _selectedBackgroundPath = (string)Properties.Settings.Default["CustomBackgroundPath"];
+            }
+            
+            // Activer/désactiver le bouton de sélection d'image si le contrôle existe
+            if (this.FindName("SelectBackgroundButton") is System.Windows.Controls.Button selectButton)
+            {
+                selectButton.IsEnabled = UseCustomBackgroundCheckBox.IsChecked == true;
+            }
         }
         
         private void LoadThemes()
@@ -154,12 +167,16 @@ namespace ItunesRPC
             }
         }
         
-        private void UseCustomBackgroundCheckBox_CheckedChanged(object sender, RoutedEventArgs e)
+        private void UseCustomBackground_CheckedChanged(object sender, RoutedEventArgs e)
         {
-            SelectBackgroundButton.IsEnabled = UseCustomBackgroundCheckBox.IsChecked == true;
+            // Mettre à jour l'état des contrôles liés au fond personnalisé
+            if (CustomBackgroundPathTextBox != null)
+            {
+                CustomBackgroundPathTextBox.IsEnabled = UseCustomBackgroundCheckBox.IsChecked == true;
+            }
         }
         
-        private void SelectBackgroundButton_Click(object sender, RoutedEventArgs e)
+        private void BrowseBackground_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog
             {
@@ -170,11 +187,65 @@ namespace ItunesRPC
             if (dialog.ShowDialog() == true)
             {
                 _selectedBackgroundPath = dialog.FileName;
+                CustomBackgroundPathTextBox.Text = _selectedBackgroundPath;
                 MessageBox.Show("Image sélectionnée : " + Path.GetFileName(_selectedBackgroundPath), "Image sélectionnée", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
         
-        private void ApplyButton_Click(object sender, RoutedEventArgs e)
+        private void BackgroundOpacity_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            // Gérer le changement d'opacité du fond
+            // Cette méthode sera implémentée pour appliquer l'opacité en temps réel
+        }
+        
+        private void EnableBlurEffect_CheckedChanged(object sender, RoutedEventArgs e)
+        {
+            // Gérer l'activation/désactivation de l'effet de flou
+            // Cette méthode sera implémentée pour appliquer l'effet en temps réel
+        }
+        
+        private void EnableAnimations_CheckedChanged(object sender, RoutedEventArgs e)
+        {
+            // Gérer l'activation/désactivation des animations
+            // Cette méthode sera implémentée pour appliquer les animations en temps réel
+        }
+        
+        private void EnableRoundedCorners_CheckedChanged(object sender, RoutedEventArgs e)
+        {
+            // Gérer l'activation/désactivation des coins arrondis
+            // Cette méthode sera implémentée pour appliquer les coins arrondis en temps réel
+        }
+        
+        private void EnableShadows_CheckedChanged(object sender, RoutedEventArgs e)
+        {
+            // Gérer l'activation/désactivation des ombres
+            // Cette méthode sera implémentée pour appliquer les ombres en temps réel
+        }
+        
+        private void Reset_Click(object sender, RoutedEventArgs e)
+        {
+            // Réinitialiser les paramètres à leurs valeurs par défaut
+            UseCustomBackgroundCheckBox.IsChecked = false;
+            CustomBackgroundPathTextBox.Text = string.Empty;
+            _selectedBackgroundPath = string.Empty;
+            BackgroundOpacitySlider.Value = 0.15;
+            EnableBlurEffectCheckBox.IsChecked = true;
+            EnableAnimationsCheckBox.IsChecked = true;
+            EnableRoundedCornersCheckBox.IsChecked = true;
+            EnableShadowsCheckBox.IsChecked = true;
+            
+            // Réinitialiser le thème sélectionné au thème par défaut (Sombre)
+            foreach (var item in _themes)
+            {
+                item.IsSelected = item.ThemeType == ThemeManager.AppTheme.Dark;
+                if (item.IsSelected)
+                {
+                    _selectedTheme = item.ThemeType;
+                }
+            }
+        }
+        
+        private void Apply_Click(object sender, RoutedEventArgs e)
         {
             // Appliquer le thème sélectionné
             ThemeManager.ChangeTheme(_selectedTheme);
@@ -235,14 +306,14 @@ namespace ItunesRPC
     {
         private bool _isSelected;
         
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public ThemeManager.AppTheme ThemeType { get; set; }
-        public Brush PrimaryColor { get; set; }
-        public Brush SecondaryColor { get; set; }
-        public Brush AccentColor { get; set; }
-        public Brush BackgroundColor { get; set; }
-        public Brush CardBackgroundColor { get; set; }
-        public Brush TextColor { get; set; }
+        public Brush PrimaryColor { get; set; } = new SolidColorBrush(Colors.Black);
+        public Brush SecondaryColor { get; set; } = new SolidColorBrush(Colors.Black);
+        public Brush AccentColor { get; set; } = new SolidColorBrush(Colors.Black);
+        public Brush BackgroundColor { get; set; } = new SolidColorBrush(Colors.Black);
+        public Brush CardBackgroundColor { get; set; } = new SolidColorBrush(Colors.Black);
+        public Brush TextColor { get; set; } = new SolidColorBrush(Colors.Black);
         
         public bool IsSelected
         {
@@ -257,7 +328,7 @@ namespace ItunesRPC
             }
         }
         
-        public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
         
         protected void OnPropertyChanged(string propertyName)
         {

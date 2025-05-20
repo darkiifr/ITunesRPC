@@ -12,7 +12,7 @@ namespace ItunesRPC
     {
         private TaskbarIcon? _notifyIcon;
         private MainWindow? _mainWindow;
-        private ItunesService? _itunesService;
+        private MusicDetectionService? _musicDetectionService;
         private DiscordRpcService? _discordService;
         private UpdateService? _updateService;
         private bool _isExiting = false;
@@ -24,20 +24,20 @@ namespace ItunesRPC
             _ = _updateService.CheckForUpdatesAsync();
 
             // Initialiser les services
-            _itunesService = new ItunesService();
             _discordService = new DiscordRpcService();
+            _musicDetectionService = new MusicDetectionService(_discordService);
 
             // Créer l'icône de notification
             _notifyIcon = (TaskbarIcon)FindResource("NotifyIcon");
             _notifyIcon.ToolTipText = "iTunes RPC - En cours d'exécution";
 
             // Créer et afficher la fenêtre principale
-            _mainWindow = new MainWindow(_itunesService, _discordService, _updateService);
+            _mainWindow = new MainWindow(_musicDetectionService, _discordService, _updateService);
             _mainWindow.Closing += MainWindow_Closing!;
             _mainWindow.Show();
 
-            // Démarrer le service iTunes
-            _itunesService.Start();
+            // Démarrer le service de détection de musique
+            _musicDetectionService.Start();
 
             // Configurer le démarrage automatique si nécessaire
             ConfigureAutoStart();
@@ -61,7 +61,7 @@ namespace ItunesRPC
         private void Application_Exit(object sender, ExitEventArgs e)
         {
             _isExiting = true;
-            _itunesService?.Stop();
+            _musicDetectionService?.Stop();
             _discordService?.Shutdown();
             _notifyIcon?.Dispose();
         }

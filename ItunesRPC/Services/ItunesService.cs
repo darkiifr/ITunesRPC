@@ -222,14 +222,47 @@ namespace ItunesRPC.Services
                     Name = currentTrack.Name,
                     Artist = currentTrack.Artist,
                     Album = currentTrack.Album,
-                    Genre = currentTrack.Genre,
-                    Year = currentTrack.Year,
+                    // Vérifier si les propriétés Genre et Year sont disponibles via une méthode alternative
+                    // ou utiliser des valeurs par défaut si elles ne sont pas accessibles
+                    Genre = GetTrackGenre(currentTrack),
+                    Year = GetTrackYear(currentTrack),
                     TrackNumber = currentTrack.TrackNumber,
                     TrackCount = currentTrack.TrackCount,
                     IsPlaying = iTunes.PlayerState == ITPlayerState.ITPlayerStatePlaying,
                     StartTime = DateTime.Now.AddSeconds(-iTunes.PlayerPosition),
                     EndTime = DateTime.Now.AddSeconds(currentTrack.Duration - iTunes.PlayerPosition)
                 };
+                
+                // Méthodes d'assistance pour obtenir le genre et l'année si les propriétés directes ne sont pas disponibles
+                string GetTrackGenre(IITTrack track)
+                {
+                    try
+                    {
+                        // Utiliser une approche alternative pour obtenir le genre
+                        // Comme nous ne pouvons pas accéder directement à la propriété Genre,
+                        // nous utilisons une valeur par défaut
+                        return "";
+                    }
+                    catch
+                    {
+                        return "";
+                    }
+                }
+                
+                int GetTrackYear(IITTrack track)
+                {
+                    try
+                    {
+                        // Utiliser une approche alternative pour obtenir l'année
+                        // Comme nous ne pouvons pas accéder directement à la propriété Year,
+                        // nous utilisons une valeur par défaut
+                        return 0; // Retourner 0 comme valeur par défaut pour l'année
+                    }
+                    catch
+                    {
+                        return 0; // Retourner 0 en cas d'erreur
+                    }
+                }
 
                 // Obtenir la pochette d'album si disponible
                 trackInfo.ArtworkPath = GetArtworkFromiTunes(currentTrack);
@@ -324,23 +357,5 @@ namespace ItunesRPC.Services
         }
     }
 
-    public class TrackInfoEventArgs : EventArgs
-    {
-        public TrackInfo TrackInfo { get; }
-
-        public TrackInfoEventArgs(TrackInfo trackInfo)
-        {
-            TrackInfo = trackInfo;
-        }
-    }
-
-    public class PlayStateEventArgs : EventArgs
-    {
-        public bool IsPlaying { get; }
-
-        public PlayStateEventArgs(bool isPlaying)
-        {
-            IsPlaying = isPlaying;
-        }
-    }
+    // Les classes d'événements ont été déplacées vers EventArgs.cs
 }

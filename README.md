@@ -41,12 +41,21 @@ Une application WPF qui affiche les informations des musiques écoutées sur iTu
 - **Minimiser dans la zone de notification** : Active/désactive la minimisation de l'application dans la zone de notification lors de la fermeture de la fenêtre
 
 ## Développement
-
 ### Prérequis pour le développement
 
 - Visual Studio 2022
 - .NET 6.0 SDK
 - Docker (optionnel, pour le déploiement)
+
+### Compilation sans Docker
+
+Pour compiler et exécuter l'application sans Docker, utilisez le script batch fourni :
+
+```batch
+.\build-and-run.bat
+```
+
+Ce script va compiler l'application en mode Release, créer un fichier exécutable unique et vous proposer de lancer l'application.
 
 ### Compilation
 
@@ -61,15 +70,29 @@ dotnet build
 dotnet run --project ItunesRPC/ItunesRPC.csproj
 ```
 
-### Création d'une image Docker
+### Utilisation de Docker
+
+Pour construire l'application avec Docker et extraire les fichiers compilés, utilisez le script PowerShell fourni :
+
+```powershell
+.\docker-build.ps1
+```
+
+Ou manuellement :
 
 ```bash
 docker build -t itunesrpc .
 ```
 
+Consultez le fichier [Docker.md](Docker.md) pour plus d'informations sur les limitations et l'utilisation recommandée de Docker avec cette application WPF.
+
 ## Licence
 
 Ce projet est sous licence MIT. Voir le fichier LICENSE pour plus de détails.
+
+## Dépannage
+
+Si vous rencontrez des problèmes lors de l'utilisation de l'application ou de Docker, consultez le [guide de dépannage](TROUBLESHOOTING.md) pour des solutions aux problèmes courants.
 
 ## Remerciements
 

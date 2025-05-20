@@ -50,8 +50,11 @@ namespace ItunesRPC.Services
             ApplyTheme(theme);
             
             // Sauvegarder le thème dans les paramètres
-            Properties.Settings.Default.CurrentTheme = (int)theme;
-            Properties.Settings.Default.Save();
+            if (Properties.Settings.Default.Properties["CurrentTheme"] != null)
+            {
+                Properties.Settings.Default["CurrentTheme"] = (int)theme;
+                Properties.Settings.Default.Save();
+            }
             
             // Notifier les abonnés du changement de thème
             ThemeChanged?.Invoke(null, theme);
@@ -97,7 +100,13 @@ namespace ItunesRPC.Services
         {
             try
             {
-                int savedTheme = Properties.Settings.Default.CurrentTheme;
+                int savedTheme = 0; // Valeur par défaut (Dark)
+                
+                // Vérifier si la propriété existe dans Settings
+                if (Properties.Settings.Default.Properties["CurrentTheme"] != null)
+                {
+                    savedTheme = (int)Properties.Settings.Default["CurrentTheme"];
+                }
                 if (Enum.IsDefined(typeof(AppTheme), savedTheme))
                 {
                     ChangeTheme((AppTheme)savedTheme);

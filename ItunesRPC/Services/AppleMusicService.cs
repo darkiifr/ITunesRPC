@@ -185,14 +185,14 @@ namespace ItunesRPC.Services
             // ou une autre méthode pour obtenir les informations de la piste en cours
             
             // Pour l'instant, nous retournons null pour indiquer qu'aucune piste n'est en cours de lecture
-            return null;
+            return null; // Retour null intentionnel, géré par le type nullable TrackInfo?
         }
 
         // Méthode pour extraire et sauvegarder la pochette d'album
         private string? ExtractAndSaveArtwork(byte[]? artworkData)
         {
             if (artworkData == null || artworkData.Length == 0)
-                return null;
+                return null; // Retour null explicitement autorisé par le type de retour nullable (string?)
 
             try
             {
@@ -208,24 +208,5 @@ namespace ItunesRPC.Services
         }
     }
 
-    // Classes d'événements (déjà définies dans ItunesService, mais répétées ici pour référence)
-    public class TrackInfoEventArgs : EventArgs
-    {
-        public TrackInfo TrackInfo { get; }
-
-        public TrackInfoEventArgs(TrackInfo trackInfo)
-        {
-            TrackInfo = trackInfo;
-        }
-    }
-
-    public class PlayStateEventArgs : EventArgs
-    {
-        public bool IsPlaying { get; }
-
-        public PlayStateEventArgs(bool isPlaying)
-        {
-            IsPlaying = isPlaying;
-        }
-    }
+    // Les classes d'événements ont été déplacées vers EventArgs.cs
 }
