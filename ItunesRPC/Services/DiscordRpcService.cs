@@ -23,10 +23,17 @@ namespace ItunesRPC.Services
 
         public DiscordRpcService()
         {
-            Initialize();
+            // Initialiser de manière asynchrone sans bloquer le constructeur
+            Task.Run(async () => await InitializeAsync());
         }
 
         private void Initialize()
+        {
+            // Méthode de compatibilité qui appelle la version asynchrone
+            Task.Run(async () => await InitializeAsync());
+        }
+        
+        private async Task InitializeAsync()
         {
             try
             {
@@ -37,15 +44,20 @@ namespace ItunesRPC.Services
                     _client = null;
                 }
                 
+                // Attendre un court instant pour s'assurer que les ressources sont libérées
+                await Task.Delay(100);
+                
                 _client = new DiscordRpcClient(_applicationId)
                 {
-                    Logger = new ConsoleLogger() { Level = LogLevel.Warning }
+                    Logger = new ConsoleLogger() { Level = LogLevel.Warning },
+                    SkipIdenticalPresence = true
                 };
 
                 _client.OnReady += (sender, e) =>
                 {
                     Console.WriteLine($"Discord RPC prêt pour l'utilisateur {e.User.Username}");
                     StopReconnectTimer(); // Arrêter le timer de reconnexion si la connexion est établie
+                    ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(true, "Connecté"));
                 };
 
                 _client.OnPresenceUpdate += (sender, e) =>
@@ -56,19 +68,34 @@ namespace ItunesRPC.Services
                 _client.OnConnectionFailed += (sender, e) =>
                 {
                     Console.WriteLine($"Échec de connexion à Discord: {e.FailedPipe}");
+                    ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(false, $"Échec de connexion: {e.FailedPipe}"));
                     StartReconnectTimer(); // Démarrer le timer de reconnexion en cas d'échec
                 };
                 
                 _client.OnError += (sender, e) =>
                 {
                     Console.WriteLine($"Erreur Discord RPC: {e.Message}");
+                    ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(false, $"Erreur: {e.Message}"));
                 };
 
+                // Initialiser le client Discord RPC
                 _client.Initialize();
+                
+                // Vérifier si l'initialisation a réussi après un court délai
+                Task.Run(async () => {
+                    await Task.Delay(5000); // Attendre 5 secondes
+                    if (_client != null && !_client.IsInitialized)
+                    {
+                        Console.WriteLine("Impossible d'initialiser Discord RPC dans le délai imparti");
+                        ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(false, "Délai d'initialisation dépassé"));
+                        StartReconnectTimer();
+                    }
+                });
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Erreur lors de l'initialisation de Discord RPC: {ex.Message}");
+                ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(false, $"Erreur: {ex.Message}"));
                 StartReconnectTimer(); // Démarrer le timer de reconnexion en cas d'erreur
             }
         }
@@ -77,16 +104,18 @@ namespace ItunesRPC.Services
         {
             try
             {
+                // Stocker la piste en cours même si Discord n'est pas disponible
+                CurrentTrack = trackInfo;
+                
                 if (_client == null || !_client.IsInitialized)
                 {
-                    Initialize();
+                    // Tenter de réinitialiser le client de manière asynchrone
+                    Task.Run(async () => await InitializeAsync());
+                    return;
                 }
 
                 if (_client != null && _client.IsInitialized)
                 {
-                    // Stocker la piste en cours
-                    CurrentTrack = trackInfo;
-                    
                     var presence = new RichPresence()
                     {
                         Details = trackInfo.Name,
@@ -114,8 +143,10 @@ namespace ItunesRPC.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"Erreur lors de la mise à jour de la présence Discord: {ex.Message}");
-                // Tenter de réinitialiser la connexion
-                Task.Run(() => ReconnectAsync());
+                // Tenter de réinitialiser la connexion de manière asynchrone
+                Task.Run(async () => await ReconnectAsync());
+                // Notifier l'erreur
+                ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(false, $"Erreur de mise à jour: {ex.Message}"));
             }
         }
 
@@ -144,19 +175,36 @@ namespace ItunesRPC.Services
         {
             try
             {
-                // Fermer la connexion existante
-                _client?.Dispose();
-                _client = null;
-                
-                // Réinitialiser
-                Initialize();
-                
                 // Notifier que la tentative de reconnexion a été lancée
                 ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(false, "Tentative de reconnexion..."));
+                
+                // Lancer la reconnexion de manière asynchrone pour ne pas bloquer l'interface utilisateur
+                Task.Run(() => ReconnectAsync());
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Erreur lors de la reconnexion: {ex.Message}");
+            }
+        }
+        
+        private async Task ReconnectAsync()
+        {
+            try
+            {
+                // Fermer la connexion existante
+                _client?.Dispose();
+                _client = null;
+                
+                // Attendre un court instant pour s'assurer que les ressources sont libérées
+                await Task.Delay(500);
+                
+                // Réinitialiser
+                await InitializeAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la reconnexion asynchrone: {ex.Message}");
+                ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(false, $"Erreur de reconnexion: {ex.Message}"));
             }
         }
 
@@ -180,47 +228,45 @@ namespace ItunesRPC.Services
         
         private void StartReconnectTimer()
         {
-            if (_reconnectTimer == null)
+            if (_reconnectTimer == null && !_isReconnecting)
             {
+                _isReconnecting = true;
                 _reconnectTimer = new Timer(RECONNECT_INTERVAL);
-                _reconnectTimer.Elapsed += async (sender, e) => await ReconnectAsync();
-            }
-            
-            if (!_reconnectTimer.Enabled)
-            {
+                _reconnectTimer.Elapsed += (s, e) => Task.Run(() => TryReconnect()); // Exécuter la reconnexion dans un thread séparé
                 _reconnectTimer.Start();
+                
+                // Notifier du changement de statut
+                ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(false, "Déconnecté - Tentatives de reconnexion en cours"));
             }
         }
         
         private void StopReconnectTimer()
         {
-            if (_reconnectTimer != null && _reconnectTimer.Enabled)
+            if (_reconnectTimer != null)
             {
                 _reconnectTimer.Stop();
+                _reconnectTimer.Dispose();
+                _reconnectTimer = null;
+                _isReconnecting = false;
+                
+                // Notifier du changement de statut
+                ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(true, "Connecté"));
             }
         }
         
-        private async Task ReconnectAsync()
+        private async void TryReconnect()
         {
-            if (_isReconnecting) return;
-            
             try
             {
-                _isReconnecting = true;
                 Console.WriteLine("Tentative de reconnexion à Discord...");
-                
-                // Attendre un peu avant de tenter la reconnexion
-                await Task.Delay(1000);
-                
-                Initialize();
+                // Utiliser la méthode asynchrone pour la reconnexion
+                await ReconnectAsync();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la tentative de reconnexion: {ex.Message}");
-            }
-            finally
-            {
-                _isReconnecting = false;
+                Console.WriteLine($"Échec de la tentative de reconnexion: {ex.Message}");
+                // Notifier l'échec de la reconnexion
+                ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(false, $"Échec de reconnexion: {ex.Message}"));
             }
         }
     }

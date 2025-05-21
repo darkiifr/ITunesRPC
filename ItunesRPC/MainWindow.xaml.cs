@@ -313,12 +313,9 @@ namespace ItunesRPC
                 TimeSpan elapsed = DateTime.Now - currentTrack.StartTime;
                 TimeSpan remaining = currentTrack.EndTime - DateTime.Now;
                 
-                // Mettre à jour les affichages de temps (si ces éléments existent dans l'interface)
-                if (ElapsedTimeText != null)
-                    ElapsedTimeText.Text = string.Format("{0:mm\\:ss}", elapsed);
-                
-                if (RemainingTimeText != null)
-                    RemainingTimeText.Text = string.Format("-{0:mm\\:ss}", remaining);
+                // Mettre à jour les affichages de temps
+                ElapsedTimeText.Text = string.Format("{0:mm\\:ss}", elapsed);
+                RemainingTimeText.Text = string.Format("-{0:mm\\:ss}", remaining);
             }
         }
         
