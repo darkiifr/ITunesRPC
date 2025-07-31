@@ -23,8 +23,28 @@ namespace ItunesRPC.Services
 
         public DiscordRpcService()
         {
-            // Initialiser de manière asynchrone sans bloquer le constructeur
-            Task.Run(async () => await InitializeAsync());
+            try
+            {
+                Console.WriteLine("Initialisation du constructeur DiscordRpcService...");
+                // Initialiser de manière asynchrone sans bloquer le constructeur
+                Task.Run(async () => 
+                {
+                    try
+                    {
+                        await InitializeAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Erreur lors de l'initialisation asynchrone de Discord RPC: {ex.Message}");
+                        ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(false, $"Erreur d'initialisation: {ex.Message}"));
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur dans le constructeur DiscordRpcService: {ex.Message}");
+                ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(false, $"Erreur de constructeur: {ex.Message}"));
+            }
         }
 
         private void Initialize()
@@ -82,7 +102,7 @@ namespace ItunesRPC.Services
                 _client.Initialize();
                 
                 // Vérifier si l'initialisation a réussi après un court délai
-                Task.Run(async () => {
+                _ = Task.Run(async () => {
                     await Task.Delay(5000); // Attendre 5 secondes
                     if (_client != null && !_client.IsInitialized)
                     {
@@ -100,7 +120,7 @@ namespace ItunesRPC.Services
             }
         }
 
-        public void UpdatePresence(TrackInfo trackInfo, string source = "iTunes")
+        public void UpdatePresence(TrackInfo? trackInfo, string source = "iTunes")
         {
             try
             {
@@ -110,7 +130,14 @@ namespace ItunesRPC.Services
                 if (_client == null || !_client.IsInitialized)
                 {
                     // Tenter de réinitialiser le client de manière asynchrone
-                    Task.Run(async () => await InitializeAsync());
+                    _ = Task.Run(async () => await InitializeAsync());
+                    return;
+                }
+
+                // Si trackInfo est null, effacer la présence
+                if (trackInfo == null)
+                {
+                    ClearPresence();
                     return;
                 }
 
@@ -144,7 +171,7 @@ namespace ItunesRPC.Services
             {
                 Console.WriteLine($"Erreur lors de la mise à jour de la présence Discord: {ex.Message}");
                 // Tenter de réinitialiser la connexion de manière asynchrone
-                Task.Run(async () => await ReconnectAsync());
+                _ = Task.Run(async () => await ReconnectAsync());
                 // Notifier l'erreur
                 ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(false, $"Erreur de mise à jour: {ex.Message}"));
             }
@@ -157,13 +184,10 @@ namespace ItunesRPC.Services
                 if (_client != null && _client.IsInitialized)
                 {
                     _client.ClearPresence();
-                    
-                    // Réinitialiser la piste en cours
-                    if (CurrentTrack != null)
-                    {
-                        CurrentTrack.IsPlaying = false;
-                    }
                 }
+                
+                // Réinitialiser la piste en cours
+                CurrentTrack = null;
             }
             catch (Exception ex)
             {
@@ -179,7 +203,7 @@ namespace ItunesRPC.Services
                 ConnectionStatusChanged?.Invoke(this, new DiscordConnectionStatusEventArgs(false, "Tentative de reconnexion..."));
                 
                 // Lancer la reconnexion de manière asynchrone pour ne pas bloquer l'interface utilisateur
-                Task.Run(() => ReconnectAsync());
+                _ = Task.Run(async () => await ReconnectAsync());
             }
             catch (Exception ex)
             {
@@ -232,7 +256,7 @@ namespace ItunesRPC.Services
             {
                 _isReconnecting = true;
                 _reconnectTimer = new Timer(RECONNECT_INTERVAL);
-                _reconnectTimer.Elapsed += (s, e) => Task.Run(() => TryReconnect()); // Exécuter la reconnexion dans un thread séparé
+                _reconnectTimer.Elapsed += (s, e) => _ = Task.Run(async () => await TryReconnect()); // Exécuter la reconnexion dans un thread séparé
                 _reconnectTimer.Start();
                 
                 // Notifier du changement de statut
@@ -254,7 +278,7 @@ namespace ItunesRPC.Services
             }
         }
         
-        private async void TryReconnect()
+        private async Task TryReconnect()
         {
             try
             {

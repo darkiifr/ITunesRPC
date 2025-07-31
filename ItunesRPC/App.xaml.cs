@@ -17,33 +17,156 @@ namespace ItunesRPC
         private UpdateService? _updateService;
         private bool _isExiting = false;
 
-        private void Application_Startup(object sender, StartupEventArgs e)
+        private async void Application_Startup(object sender, StartupEventArgs e)
         {
-            // Vérifier les mises à jour au démarrage
-            _updateService = new UpdateService();
-            _ = _updateService.CheckForUpdatesAsync();
+            try
+            {
+                Console.WriteLine("Démarrage de l'application...");
+                
+                // Vérifier les mises à jour au démarrage avec gestion d'erreur
+                try
+                {
+                    Console.WriteLine("Initialisation du service de mise à jour...");
+                    _updateService = new UpdateService();
+                    if (_updateService != null && Settings.Default.CheckUpdateOnStartup)
+                    {
+                        _ = _updateService.CheckForUpdatesAsync();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erreur lors de l'initialisation du service de mise à jour: {ex.Message}");
+                    // Continuer sans le service de mise à jour
+                }
 
-            // Initialiser les services
-            _discordService = new DiscordRpcService();
-            _musicDetectionService = new MusicDetectionService(_discordService);
+                // Initialiser les services dans le bon ordre avec gestion d'erreur
+                try
+                {
+                    Console.WriteLine("Initialisation du service Discord RPC...");
+                    _discordService = new DiscordRpcService();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erreur lors de l'initialisation du service Discord: {ex.Message}");
+                    // Continuer sans Discord RPC
+                }
 
-            // Créer l'icône de notification
-            _notifyIcon = (TaskbarIcon)FindResource("NotifyIcon");
-            _notifyIcon.ToolTipText = "iTunes RPC - En cours d'exécution";
+                ItunesService? itunesService = null;
+                AppleMusicService? appleMusicService = null;
+                
+                try
+                {
+                    Console.WriteLine("Initialisation du service iTunes...");
+                    itunesService = new ItunesService();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erreur lors de l'initialisation du service iTunes: {ex.Message}");
+                }
 
-            // Créer et afficher la fenêtre principale
-            _mainWindow = new MainWindow(_musicDetectionService, _discordService, _updateService);
-            _mainWindow.Closing += MainWindow_Closing!;
-            _mainWindow.Show();
+                try
+                {
+                    Console.WriteLine("Initialisation du service Apple Music...");
+                    appleMusicService = new AppleMusicService();
+                    await appleMusicService.InitializeAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erreur lors de l'initialisation du service Apple Music: {ex.Message}");
+                }
 
-            // Démarrer le service de détection de musique
-            _musicDetectionService.Start();
+                // Vérifier que les services essentiels sont initialisés
+                if (itunesService == null || appleMusicService == null)
+                {
+                    MessageBox.Show("Erreur critique: Impossible d'initialiser les services de musique.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Shutdown();
+                    return;
+                }
 
-            // Configurer le démarrage automatique si nécessaire
-            ConfigureAutoStart();
+                try
+                {
+                    Console.WriteLine("Initialisation du service de détection de musique...");
+                    _musicDetectionService = new MusicDetectionService(itunesService, appleMusicService, _discordService!);
+                    await _musicDetectionService.InitializeAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erreur lors de l'initialisation du service de détection: {ex.Message}");
+                    MessageBox.Show($"Erreur critique lors de l'initialisation: {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Shutdown();
+                    return;
+                }
+
+                // Créer l'icône de notification avec gestion d'erreur
+                try
+                {
+                    Console.WriteLine("Création de l'icône de notification...");
+                    _notifyIcon = (TaskbarIcon)FindResource("NotifyIcon");
+                    if (_notifyIcon != null)
+                    {
+                        _notifyIcon.ToolTipText = "iTunes RPC - En cours d'exécution";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erreur lors de la création de l'icône de notification: {ex.Message}");
+                    // Continuer sans icône de notification
+                }
+
+                // Créer et afficher la fenêtre principale avec gestion d'erreur
+                try
+                {
+                    Console.WriteLine("Création de la fenêtre principale...");
+                    _mainWindow = new MainWindow(_musicDetectionService, _discordService!, _updateService!);
+                    if (_mainWindow != null)
+                    {
+                        _mainWindow.Closing += MainWindow_Closing;
+                        _mainWindow.Show();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erreur lors de la création de la fenêtre principale: {ex.Message}");
+                    MessageBox.Show($"Erreur critique lors de la création de l'interface: {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Shutdown();
+                    return;
+                }
+
+                // Démarrer le service de détection de musique avec gestion d'erreur
+                try
+                {
+                    Console.WriteLine("Démarrage du service de détection de musique...");
+                    _musicDetectionService?.Start();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erreur lors du démarrage du service de détection: {ex.Message}");
+                    // Continuer même si le service ne démarre pas
+                }
+
+                // Configurer le démarrage automatique si nécessaire avec gestion d'erreur
+                try
+                {
+                    Console.WriteLine("Configuration du démarrage automatique...");
+                    ConfigureAutoStart();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erreur lors de la configuration du démarrage automatique: {ex.Message}");
+                    // Continuer même si la configuration échoue
+                }
+                
+                Console.WriteLine("Application démarrée avec succès.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur critique lors du démarrage de l'application: {ex.Message}");
+                MessageBox.Show($"Erreur critique lors du démarrage: {ex.Message}\n\nStack trace: {ex.StackTrace}", "Erreur critique", MessageBoxButton.OK, MessageBoxImage.Error);
+                Shutdown();
+            }
         }
 
-        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             if (!_isExiting)
             {
@@ -51,8 +174,8 @@ namespace ItunesRPC
                 if (Settings.Default.MinimizeToTray)
                 {
                     e.Cancel = true;
-                    _mainWindow!.Hide();
-                    _notifyIcon!.ShowBalloonTip("iTunes RPC", "L'application continue de fonctionner en arrière-plan.", BalloonIcon.Info);
+                    _mainWindow?.Hide();
+                    _notifyIcon?.ShowBalloonTip("iTunes RPC", "L'application continue de fonctionner en arrière-plan.", BalloonIcon.Info);
                 }
                 // Sinon, laisser la fenêtre se fermer normalement
             }

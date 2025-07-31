@@ -6,10 +6,10 @@ namespace ItunesRPC.Services
     // Classes d'événements communes pour les services de détection de musique
     public class TrackInfoEventArgs : EventArgs
     {
-        public TrackInfo TrackInfo { get; }
+        public TrackInfo? TrackInfo { get; }
         public string? Source { get; }
 
-        public TrackInfoEventArgs(TrackInfo trackInfo, string? source = null)
+        public TrackInfoEventArgs(TrackInfo? trackInfo, string? source = null)
         {
             TrackInfo = trackInfo;
             Source = source;

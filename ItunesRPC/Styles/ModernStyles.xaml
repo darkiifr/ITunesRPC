@@ -71,10 +71,10 @@
                             <Trigger.EnterActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleTransform.ScaleX"
+                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[0].ScaleX"
                                                          To="1.05" Duration="{StaticResource FastAnimationDuration}"
                                                          EasingFunction="{StaticResource StandardEasing}"/>
-                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleTransform.ScaleY"
+                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[0].ScaleY"
                                                          To="1.05" Duration="{StaticResource FastAnimationDuration}"
                                                          EasingFunction="{StaticResource StandardEasing}"/>
                                     </Storyboard>
@@ -83,10 +83,10 @@
                             <Trigger.ExitActions>
                                 <BeginStoryboard>
                                     <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleTransform.ScaleX"
+                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[0].ScaleX"
                                                          To="1.0" Duration="{StaticResource FastAnimationDuration}"
                                                          EasingFunction="{StaticResource StandardEasing}"/>
-                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleTransform.ScaleY"
+                                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[0].ScaleY"
                                                          To="1.0" Duration="{StaticResource FastAnimationDuration}"
                                                          EasingFunction="{StaticResource StandardEasing}"/>
                                     </Storyboard>
@@ -150,6 +150,13 @@
     <Style x:Key="ValueTextBlock" TargetType="TextBlock" BasedOn="{StaticResource ModernTextBlock}">
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="Margin" Value="0,0,0,5"/>
+    </Style>
+    
+    <!-- Style de titre de section -->
+    <Style x:Key="SectionTitleTextBlock" TargetType="TextBlock" BasedOn="{StaticResource ModernTextBlock}">
+        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Margin" Value="0,10,0,10"/>
     </Style>
     
     <!-- Style de CheckBox avec animations -->
@@ -246,13 +253,13 @@
             <EventTrigger RoutedEvent="Border.MouseEnter">
                 <BeginStoryboard>
                     <Storyboard>
-                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleTransform.ScaleX"
+                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[0].ScaleX"
                                          To="1.03" Duration="{StaticResource FastAnimationDuration}"
                                          EasingFunction="{StaticResource StandardEasing}"/>
-                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleTransform.ScaleY"
+                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[0].ScaleY"
                                          To="1.03" Duration="{StaticResource FastAnimationDuration}"
                                          EasingFunction="{StaticResource StandardEasing}"/>
-                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.TranslateTransform.Y"
+                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[1].Y"
                                          To="-2" Duration="{StaticResource FastAnimationDuration}"
                                          EasingFunction="{StaticResource StandardEasing}"/>
                         <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Effect">
@@ -268,13 +275,13 @@
             <EventTrigger RoutedEvent="Border.MouseLeave">
                 <BeginStoryboard>
                     <Storyboard>
-                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleTransform.ScaleX"
+                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[0].ScaleX"
                                          To="1.0" Duration="{StaticResource FastAnimationDuration}"
                                          EasingFunction="{StaticResource StandardEasing}"/>
-                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleTransform.ScaleY"
+                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[0].ScaleY"
                                          To="1.0" Duration="{StaticResource FastAnimationDuration}"
                                          EasingFunction="{StaticResource StandardEasing}"/>
-                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.TranslateTransform.Y"
+                        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Children[1].Y"
                                          To="0" Duration="{StaticResource FastAnimationDuration}"
                                          EasingFunction="{StaticResource StandardEasing}"/>
                         <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Effect">
@@ -453,42 +460,6 @@
             </Trigger>
         </Style.Triggers>
     </Style>
-    
-    <!-- Animations et transitions -->
-    <Duration x:Key="StandardAnimationDuration">0:0:0.25</Duration>
-    <Duration x:Key="FastAnimationDuration">0:0:0.15</Duration>
-    <Duration x:Key="SlowAnimationDuration">0:0:0.4</Duration>
-    
-    <!-- Easing functions -->
-    <QuadraticEase x:Key="StandardEasing" EasingMode="EaseOut"/>
-    <CubicEase x:Key="SmoothEasing" EasingMode="EaseInOut"/>
-    <ElasticEase x:Key="BounceEasing" Oscillations="1" Springiness="3" EasingMode="EaseOut"/>
-    
-    <!-- Storyboards pour les transitions de thème -->
-    <Storyboard x:Key="FadeInStoryboard">
-        <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                         From="0" To="1"
-                         Duration="{StaticResource StandardAnimationDuration}"
-                         EasingFunction="{StaticResource StandardEasing}"/>
-    </Storyboard>
-    
-    <Storyboard x:Key="FadeOutStoryboard">
-        <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                         From="1" To="0"
-                         Duration="{StaticResource FastAnimationDuration}"
-                         EasingFunction="{StaticResource StandardEasing}"/>
-    </Storyboard>
-    
-    <Storyboard x:Key="SlideInStoryboard">
-        <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(TranslateTransform.X)"
-                         From="50" To="0"
-                         Duration="{StaticResource StandardAnimationDuration}"
-                         EasingFunction="{StaticResource SmoothEasing}"/>
-        <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                         From="0" To="1"
-                         Duration="{StaticResource StandardAnimationDuration}"
-                         EasingFunction="{StaticResource StandardEasing}"/>
-    </Storyboard>
     
     <!-- Styles pour les contrôles de saisie -->
     <Style x:Key="ModernTextBox" TargetType="TextBox">

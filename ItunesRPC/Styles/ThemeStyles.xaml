@@ -106,6 +106,18 @@
         <Color x:Key="CardBackgroundColor">#5F1E1E</Color>
     </ResourceDictionary>
     
+    <!-- Application du thème sombre par défaut -->
+    <Color x:Key="PrimaryColor">#2D2D30</Color>
+    <Color x:Key="SecondaryColor">#3E3E42</Color>
+    <Color x:Key="AccentColor">#007ACC</Color>
+    <Color x:Key="TextPrimaryColor">#FFFFFF</Color>
+    <Color x:Key="TextSecondaryColor">#CCCCCC</Color>
+    <Color x:Key="BorderColor">#555555</Color>
+    <Color x:Key="BackgroundColor">#252526</Color>
+    <Color x:Key="HoverColor">#404045</Color>
+    <Color x:Key="AppBackgroundColor">#1E1E1E</Color>
+    <Color x:Key="CardBackgroundColor">#2A2A2D</Color>
+    
     <!-- Brosses dynamiques qui seront mises à jour lors du changement de thème -->
     <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}"/>
     <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource SecondaryColor}"/>

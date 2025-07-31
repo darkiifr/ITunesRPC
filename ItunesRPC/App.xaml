@@ -9,6 +9,8 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <!-- Ressources d'animation (doit être chargé en premier) -->
+                <ResourceDictionary Source="/Styles/AnimationResources.xaml"/>
                 <!-- Styles modernes inspirés de Content Manager pour Assetto Corsa -->
                 <ResourceDictionary Source="/Styles/ModernStyles.xaml"/>
                 <ResourceDictionary Source="/Styles/ToolbarStyles.xaml"/>

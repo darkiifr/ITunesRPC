@@ -45,7 +45,7 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border x:Name="ThemeCard" Margin="10" Width="150" Height="150" CornerRadius="8" BorderThickness="2" BorderBrush="Transparent" Background="{Binding BackgroundColor}" Cursor="Hand">
+                                <Border x:Name="ThemeCard" Margin="10" Width="150" Height="150" CornerRadius="8" BorderThickness="2" BorderBrush="Transparent" Background="{Binding BackgroundColor}" Cursor="Hand" MouseLeftButtonDown="ThemeCard_Click">
                                     <Border.Effect>
                                         <DropShadowEffect ShadowDepth="2" BlurRadius="5" Opacity="0.3"/>
                                     </Border.Effect>
@@ -80,6 +80,7 @@
                                     </DataTrigger>
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter TargetName="ThemeCard" Property="BorderBrush" Value="{Binding AccentColor}"/>
+                                        <Setter TargetName="ThemeCard" Property="Opacity" Value="0.9"/>
                                     </Trigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>

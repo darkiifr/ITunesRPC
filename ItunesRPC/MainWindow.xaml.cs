@@ -25,25 +25,34 @@ namespace ItunesRPC
         {
             InitializeComponent();
             
-            _musicService = musicService;
-            _discordService = discordService;
-            _updateService = updateService;
+            _musicService = musicService ?? throw new ArgumentNullException(nameof(musicService));
+            _discordService = discordService ?? throw new ArgumentNullException(nameof(discordService));
+            _updateService = updateService; // Peut être null
 
-            // S'abonner aux événements
-            _musicService.TrackChanged += MusicService_TrackChanged;
-            _musicService.PlayStateChanged += MusicService_PlayStateChanged;
-            _discordService.ConnectionStatusChanged += DiscordService_ConnectionStatusChanged;
+            try
+            {
+                // S'abonner aux événements
+                _musicService.TrackChanged += MusicService_TrackChanged;
+                _musicService.PlayStateChanged += MusicService_PlayStateChanged;
+                _musicService.ServiceStatusChanged += MusicService_ServiceStatusChanged;
+                _discordService.ConnectionStatusChanged += DiscordService_ConnectionStatusChanged;
 
-            // Configurer le timer pour mettre à jour la progression
-            _progressTimer = new System.Timers.Timer(500);
-            _progressTimer.Elapsed += (s, e) => Dispatcher.Invoke(UpdateTrackProgress);
-            _progressTimer.Start();
-            
-            // S'abonner à l'événement de redimensionnement
-            SizeChanged += MainWindow_SizeChanged;
+                // Configurer le timer pour mettre à jour la progression
+                _progressTimer = new System.Timers.Timer(500);
+                _progressTimer.Elapsed += (s, e) => Dispatcher.Invoke(UpdateTrackProgress);
+                _progressTimer.Start();
+                
+                // S'abonner à l'événement de redimensionnement
+                SizeChanged += MainWindow_SizeChanged;
 
-            // Charger les paramètres
-            LoadSettings();
+                // Charger les paramètres
+                LoadSettings();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de l'initialisation de MainWindow: {ex.Message}");
+                throw;
+            }
         }
         
         private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -79,14 +88,24 @@ namespace ItunesRPC
         {
             try
             {
-                // Charger les paramètres de l'interface
-                AutoStartCheckBox.IsChecked = Properties.Settings.Default.AutoStartEnabled;
-                MinimizeToTrayCheckBox.IsChecked = Properties.Settings.Default.MinimizeToTray;
-                ShowNotificationsCheckBox.IsChecked = Properties.Settings.Default.ShowNotifications;
-                CheckUpdateOnStartupCheckBox.IsChecked = Properties.Settings.Default.CheckUpdateOnStartup;
+                // Charger les paramètres de l'interface avec vérifications de sécurité
+                if (AutoStartCheckBox != null)
+                    AutoStartCheckBox.IsChecked = Properties.Settings.Default.AutoStartEnabled;
+                
+                if (MinimizeToTrayCheckBox != null)
+                    MinimizeToTrayCheckBox.IsChecked = Properties.Settings.Default.MinimizeToTray;
+                
+                if (ShowNotificationsCheckBox != null)
+                    ShowNotificationsCheckBox.IsChecked = Properties.Settings.Default.ShowNotifications;
+                
+                if (CheckUpdateOnStartupCheckBox != null)
+                    CheckUpdateOnStartupCheckBox.IsChecked = Properties.Settings.Default.CheckUpdateOnStartup;
                 
                 // Charger et appliquer le thème sauvegardé
                 ThemeManager.LoadSavedTheme();
+                
+                // Appliquer le thème actuel à cette fenêtre
+                ThemeManager.ApplyCurrentThemeToWindow(this);
                 
                 // Appliquer le fond personnalisé
                 ApplyCustomBackground();
@@ -94,42 +113,89 @@ namespace ItunesRPC
                 // Initialiser les statuts
                 InitializeStatuses();
                 
-                // S'abonner aux événements de mise à jour
-                _updateService.UpdateStatusChanged += UpdateService_StatusChanged;
-                
-                // Vérifier les mises à jour au démarrage (silencieusement) si l'option est activée
-                if (Properties.Settings.Default.CheckUpdateOnStartup)
+                // S'abonner aux événements de mise à jour si le service est disponible
+                if (_updateService != null)
                 {
-                    _ = _updateService.CheckForUpdatesAsync(false);
+                    _updateService.UpdateStatusChanged += UpdateService_StatusChanged;
+                    
+                    // Vérifier les mises à jour au démarrage (silencieusement) si l'option est activée
+                    if (Properties.Settings.Default.CheckUpdateOnStartup)
+                    {
+                        _ = _updateService.CheckForUpdatesAsync(false);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Erreur lors du chargement des paramètres: {ex.Message}");
-                // Utiliser des valeurs par défaut en cas d'erreur
-                AutoStartCheckBox.IsChecked = false;
-                MinimizeToTrayCheckBox.IsChecked = true;
-                ShowNotificationsCheckBox.IsChecked = true;
-                CheckUpdateOnStartupCheckBox.IsChecked = true;
+                // Utiliser des valeurs par défaut en cas d'erreur avec vérifications de sécurité
+                if (AutoStartCheckBox != null)
+                    AutoStartCheckBox.IsChecked = false;
+                
+                if (MinimizeToTrayCheckBox != null)
+                    MinimizeToTrayCheckBox.IsChecked = true;
+                
+                if (ShowNotificationsCheckBox != null)
+                    ShowNotificationsCheckBox.IsChecked = true;
+                
+                if (CheckUpdateOnStartupCheckBox != null)
+                    CheckUpdateOnStartupCheckBox.IsChecked = true;
                 
                 // Appliquer le thème par défaut
-                ThemeManager.ChangeTheme(ThemeManager.AppTheme.Dark);
+                try
+                {
+                    ThemeManager.ChangeTheme(ThemeManager.AppTheme.Dark);
+                    // S'assurer que le thème est appliqué à cette fenêtre
+                    ThemeManager.ApplyCurrentThemeToWindow(this);
+                }
+                catch (Exception themeEx)
+                {
+                    Console.WriteLine($"Erreur lors de l'application du thème par défaut: {themeEx.Message}");
+                }
                 
                 // Utiliser le fond par défaut
-                MainGrid.Background = (SolidColorBrush)Application.Current.Resources["AppBackgroundBrush"];
+                try
+                {
+                    if (MainGrid != null && Application.Current?.Resources != null)
+                    {
+                        var backgroundBrush = Application.Current.Resources["AppBackgroundBrush"] as SolidColorBrush;
+                        if (backgroundBrush != null)
+                        {
+                            MainGrid.Background = backgroundBrush;
+                        }
+                    }
+                }
+                catch (Exception bgEx)
+                {
+                    Console.WriteLine($"Erreur lors de l'application du fond par défaut: {bgEx.Message}");
+                }
             }
         }
         
         private void InitializeStatuses()
         {
-            // Initialiser les statuts des services
-            iTunesStatusText.Text = "En attente...";
-            DiscordStatusText.Text = "En attente...";
-            StatusText.Text = "En attente de musique...";
-            AppStatusText.Text = "Application prête";
-            
-            // Charger l'image par défaut pour l'album
-            LoadDefaultAlbumArt();
+            try
+            {
+                // Initialiser les statuts des services avec vérifications de sécurité
+                if (iTunesStatusText != null)
+                    iTunesStatusText.Text = "En attente...";
+                
+                if (DiscordStatusText != null)
+                    DiscordStatusText.Text = "En attente...";
+                
+                if (StatusText != null)
+                    StatusText.Text = "En attente de musique...";
+                
+                if (AppStatusText != null)
+                    AppStatusText.Text = "Application prête";
+                
+                // Charger l'image par défaut pour l'album
+                LoadDefaultAlbumArt();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de l'initialisation des statuts: {ex.Message}");
+            }
         }
         
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -185,16 +251,52 @@ namespace ItunesRPC
         
         private void UpdateService_StatusChanged(object? sender, string status)
         {
-            // Mettre à jour le statut de l'application depuis n'importe quel thread
-            Dispatcher.Invoke(() => {
-                AppStatusText.Text = status;
-            });
+            try
+            {
+                // Mettre à jour le statut de l'application depuis n'importe quel thread
+                Dispatcher.Invoke(() => {
+                    if (AppStatusText != null && !string.IsNullOrEmpty(status))
+                    {
+                        AppStatusText.Text = status;
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la mise à jour du statut: {ex.Message}");
+            }
         }
 
         private void MusicService_TrackChanged(object? sender, TrackInfoEventArgs e)
         {
             Dispatcher.Invoke(() =>
             {
+                // Vérifier si TrackInfo est null (service arrêté)
+                if (e.TrackInfo == null)
+                {
+                    // Réinitialiser l'interface utilisateur
+                    TrackNameText.Text = "Aucune piste";
+                    ArtistText.Text = "Aucun artiste";
+                    AlbumText.Text = "Aucun album";
+                    PositionText.Text = "";
+                    StatusText.Text = "En attente de musique...";
+                    SourceText.Text = e.Source ?? "Aucun";
+                    AppStatusText.Text = $"{e.Source} arrêté";
+                    
+                    // Réinitialiser la barre de progression
+                    TrackProgressBar.Value = 0;
+                    ElapsedTimeText.Text = "00:00";
+                    RemainingTimeText.Text = "00:00";
+                    
+                    // Masquer l'indicateur de pause
+                    PlayingIndicator.Visibility = Visibility.Collapsed;
+                    
+                    // Charger l'image par défaut
+                    LoadDefaultAlbumArt();
+                    
+                    return;
+                }
+
                 // Mettre à jour l'interface utilisateur avec les informations de la piste
                 TrackNameText.Text = e.TrackInfo.Name;
                 ArtistText.Text = e.TrackInfo.Artist;
@@ -300,44 +402,131 @@ namespace ItunesRPC
                 ReconnectButton.IsEnabled = !e.IsConnected;
             });
         }
+
+        private void MusicService_ServiceStatusChanged(object? sender, ServiceStatusEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                // Mettre à jour le statut iTunes/Apple Music
+                if (e.AppleMusicActive)
+                {
+                    iTunesStatusText.Text = "Apple Music détecté";
+                    AppStatusText.Text = "Apple Music actif";
+                }
+                else if (e.ItunesActive)
+                {
+                    iTunesStatusText.Text = "iTunes détecté";
+                    AppStatusText.Text = "iTunes actif";
+                }
+                else
+                {
+                    iTunesStatusText.Text = "Non détecté";
+                    AppStatusText.Text = "Aucune application de musique détectée";
+                }
+
+                // Mettre à jour le statut général
+                StatusText.Text = e.ActiveService != "Aucun" 
+                    ? $"Service actif: {e.ActiveService}" 
+                    : "En attente de musique...";
+            });
+        }
         
         private void UpdateTrackProgress()
         {
-            // Cette méthode est appelée par le timer pour mettre à jour la barre de progression
-            var currentTrack = _discordService.CurrentTrack;
-            if (currentTrack != null && currentTrack.IsPlaying)
+            try
             {
-                TrackProgressBar.Value = currentTrack.ProgressPercentage;
-                
-                // Calculer le temps écoulé et le temps restant
-                TimeSpan elapsed = DateTime.Now - currentTrack.StartTime;
-                TimeSpan remaining = currentTrack.EndTime - DateTime.Now;
-                
-                // Mettre à jour les affichages de temps
-                ElapsedTimeText.Text = string.Format("{0:mm\\:ss}", elapsed);
-                RemainingTimeText.Text = string.Format("-{0:mm\\:ss}", remaining);
+                // Cette méthode est appelée par le timer pour mettre à jour la barre de progression
+                var currentTrack = _discordService?.CurrentTrack;
+                if (currentTrack != null && currentTrack.IsPlaying)
+                {
+                    // Vérifier que les éléments UI existent avant de les utiliser
+                    if (TrackProgressBar != null)
+                    {
+                        TrackProgressBar.Value = currentTrack.ProgressPercentage;
+                    }
+                    
+                    // Calculer le temps écoulé et le temps restant
+                    TimeSpan elapsed = DateTime.Now - currentTrack.StartTime;
+                    TimeSpan remaining = currentTrack.EndTime - DateTime.Now;
+                    
+                    // Mettre à jour les affichages de temps avec vérification de nullité
+                    if (ElapsedTimeText != null)
+                    {
+                        ElapsedTimeText.Text = string.Format("{0:mm\\:ss}", elapsed);
+                    }
+                    
+                    if (RemainingTimeText != null)
+                    {
+                        RemainingTimeText.Text = string.Format("-{0:mm\\:ss}", remaining);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la mise à jour de la progression: {ex.Message}");
             }
         }
         
         private void ReconnectDiscord_Click(object sender, RoutedEventArgs e)
         {
-            _discordService.Reconnect();
+            try
+            {
+                _discordService?.Reconnect();
+                
+                // Mettre à jour le statut
+                if (AppStatusText != null)
+                {
+                    AppStatusText.Text = "Tentative de reconnexion à Discord...";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la reconnexion Discord: {ex.Message}");
+                if (AppStatusText != null)
+                {
+                    AppStatusText.Text = $"Erreur de reconnexion Discord: {ex.Message}";
+                }
+            }
         }
         
         private void RefreshConnection_Click(object sender, RoutedEventArgs e)
         {
-            // Actualiser les connexions iTunes/Apple Music et Discord
-            _musicService.Restart();
-            _discordService.Reconnect();
-            
-            // Afficher un message de confirmation
-            var notifyIcon = (Hardcodet.Wpf.TaskbarNotification.TaskbarIcon)Application.Current.FindResource("NotifyIcon");
-            if (notifyIcon != null)
+            try
             {
-                notifyIcon.ShowBalloonTip(
-                "iTunes RPC",
-                "Connexions actualisées",
-                Hardcodet.Wpf.TaskbarNotification.BalloonIcon.Info);
+                // Actualiser les connexions iTunes/Apple Music et Discord
+                _musicService?.Restart();
+                _discordService?.Reconnect();
+                
+                // Afficher un message de confirmation
+                try
+                {
+                    var notifyIcon = (Hardcodet.Wpf.TaskbarNotification.TaskbarIcon?)Application.Current?.FindResource("NotifyIcon");
+                    if (notifyIcon != null)
+                    {
+                        notifyIcon.ShowBalloonTip(
+                        "iTunes RPC",
+                        "Connexions actualisées",
+                        Hardcodet.Wpf.TaskbarNotification.BalloonIcon.Info);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erreur lors de l'affichage de la notification: {ex.Message}");
+                }
+                
+                // Mettre à jour le statut de l'application
+                if (AppStatusText != null)
+                {
+                    AppStatusText.Text = "Connexions actualisées";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de l'actualisation des connexions: {ex.Message}");
+                if (AppStatusText != null)
+                {
+                    AppStatusText.Text = $"Erreur lors de l'actualisation: {ex.Message}";
+                }
             }
         }
         
@@ -481,6 +670,7 @@ namespace ItunesRPC
                 {
                     _musicService.TrackChanged -= MusicService_TrackChanged;
                     _musicService.PlayStateChanged -= MusicService_PlayStateChanged;
+                    _musicService.ServiceStatusChanged -= MusicService_ServiceStatusChanged;
                 }
                 
                 if (_discordService != null)
@@ -567,29 +757,92 @@ namespace ItunesRPC
         
         private void CheckUpdateOnStartupCheckBox_CheckedChanged(object sender, RoutedEventArgs e)
         {
-            Properties.Settings.Default.CheckUpdateOnStartup = CheckUpdateOnStartupCheckBox.IsChecked == true;
-            Properties.Settings.Default.Save();
-            
-            // Mettre à jour le statut
-            AppStatusText.Text = CheckUpdateOnStartupCheckBox.IsChecked == true 
-                ? "Vérification des mises à jour au démarrage activée" 
-                : "Vérification des mises à jour au démarrage désactivée";
+            try
+            {
+                Properties.Settings.Default.CheckUpdateOnStartup = CheckUpdateOnStartupCheckBox?.IsChecked == true;
+                Properties.Settings.Default.Save();
+                
+                // Mettre à jour le statut
+                if (AppStatusText != null)
+                {
+                    AppStatusText.Text = CheckUpdateOnStartupCheckBox?.IsChecked == true 
+                        ? "Vérification des mises à jour au démarrage activée" 
+                        : "Vérification des mises à jour au démarrage désactivée";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la sauvegarde des paramètres: {ex.Message}");
+                if (AppStatusText != null)
+                {
+                    AppStatusText.Text = $"Erreur lors de la sauvegarde: {ex.Message}";
+                }
+            }
         }
 
         private void CheckUpdate_Click(object sender, RoutedEventArgs e)
         {
-            // Vérifier les mises à jour
-            _ = _updateService.CheckForUpdatesAsync(true);
-            AppStatusText.Text = "Vérification des mises à jour...";
+            try
+            {
+                // Vérifier les mises à jour
+                if (_updateService != null)
+                {
+                    _ = _updateService.CheckForUpdatesAsync(true);
+                    if (AppStatusText != null)
+                    {
+                        AppStatusText.Text = "Vérification des mises à jour...";
+                    }
+                }
+                else
+                {
+                    if (AppStatusText != null)
+                    {
+                        AppStatusText.Text = "Service de mise à jour non disponible";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de la vérification des mises à jour: {ex.Message}");
+                if (AppStatusText != null)
+                {
+                    AppStatusText.Text = $"Erreur lors de la vérification: {ex.Message}";
+                }
+            }
         }
         
         private void ConfigUpdate_Click(object sender, RoutedEventArgs e)
         {
-            // Ouvrir la fenêtre de configuration des mises à jour
-            var configWindow = new UpdateConfigWindow(_updateService);
-            configWindow.Owner = this;
-            configWindow.ShowDialog();
-            AppStatusText.Text = "Configuration des mises à jour mise à jour";
+            try
+            {
+                if (_updateService != null)
+                {
+                    // Ouvrir la fenêtre de configuration des mises à jour
+                    var configWindow = new UpdateConfigWindow(_updateService);
+                    configWindow.Owner = this;
+                    configWindow.ShowDialog();
+                    
+                    if (AppStatusText != null)
+                    {
+                        AppStatusText.Text = "Configuration des mises à jour mise à jour";
+                    }
+                }
+                else
+                {
+                    if (AppStatusText != null)
+                    {
+                        AppStatusText.Text = "Service de mise à jour non disponible";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de l'ouverture de la configuration: {ex.Message}");
+                if (AppStatusText != null)
+                {
+                    AppStatusText.Text = $"Erreur lors de l'ouverture: {ex.Message}";
+                }
+            }
         }
 
         private void About_Click(object sender, RoutedEventArgs e)

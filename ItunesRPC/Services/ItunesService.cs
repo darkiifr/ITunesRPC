@@ -16,6 +16,9 @@ namespace ItunesRPC.Services
         private TrackInfo? _currentTrack;
         private bool _isPlaying = false;
         private readonly string _tempFolder;
+        private int _consecutiveErrors = 0;
+        private const int MAX_CONSECUTIVE_ERRORS = 5;
+        private DateTime _lastSuccessfulPoll = DateTime.Now;
 
         // Événements pour notifier les changements
         public event EventHandler<TrackInfoEventArgs>? TrackChanged;
@@ -50,23 +53,40 @@ namespace ItunesRPC.Services
                     if (_isPlaying)
                     {
                         _isPlaying = false;
-                        PlayStateChanged?.Invoke(this, new PlayStateEventArgs(_isPlaying));
-                        _currentTrack = null; // Réinitialiser la piste actuelle quand iTunes est fermé
+                        PlayStateChanged?.Invoke(this, new PlayStateEventArgs(_isPlaying, "iTunes"));
+                        _currentTrack = null;
+                    }
+                    _consecutiveErrors = 0; // Réinitialiser le compteur d'erreurs
+                    return;
+                }
+
+                // Si trop d'erreurs consécutives, attendre plus longtemps
+                if (_consecutiveErrors >= MAX_CONSECUTIVE_ERRORS)
+                {
+                    var timeSinceLastSuccess = DateTime.Now - _lastSuccessfulPoll;
+                    if (timeSinceLastSuccess.TotalMinutes < 2) // Attendre 2 minutes avant de réessayer
+                    {
+                        return;
+                    }
+                    _consecutiveErrors = 0; // Réinitialiser après l'attente
+                }
+
+                // Obtenir les informations de la piste en cours
+                var trackInfo = GetCurrentTrackInfo();
+                if (trackInfo == null)
+                {
+                    _consecutiveErrors++;
+                    if (_isPlaying)
+                    {
+                        _isPlaying = false;
+                        PlayStateChanged?.Invoke(this, new PlayStateEventArgs(_isPlaying, "iTunes"));
                     }
                     return;
                 }
 
-                // Obtenir les informations de la piste en cours via WMI
-                var trackInfo = GetCurrentTrackInfo();
-                if (trackInfo == null)
-                {
-                    if (_isPlaying)
-                    {
-                        _isPlaying = false;
-                        PlayStateChanged?.Invoke(this, new PlayStateEventArgs(_isPlaying));
-                    }
-                    return;
-                }
+                // Succès - réinitialiser le compteur d'erreurs
+                _consecutiveErrors = 0;
+                _lastSuccessfulPoll = DateTime.Now;
 
                 // Vérifier si la piste a changé
                 bool trackChanged = _currentTrack == null ||
@@ -84,22 +104,30 @@ namespace ItunesRPC.Services
                 // Déclencher les événements si nécessaire
                 if (trackChanged && _isPlaying)
                 {
-                    TrackChanged?.Invoke(this, new TrackInfoEventArgs(trackInfo));
+                    TrackChanged?.Invoke(this, new TrackInfoEventArgs(trackInfo, "iTunes"));
                 }
 
                 if (playStateChanged)
                 {
-                    PlayStateChanged?.Invoke(this, new PlayStateEventArgs(_isPlaying));
+                    PlayStateChanged?.Invoke(this, new PlayStateEventArgs(_isPlaying, "iTunes"));
+                }
+
+                // Nettoyer les anciens fichiers d'artwork périodiquement
+                if (DateTime.Now.Minute % 10 == 0) // Toutes les 10 minutes
+                {
+                    CleanupOldArtworkFiles();
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de l'interrogation d'iTunes: {ex.Message}");
+                _consecutiveErrors++;
+                Console.WriteLine($"Erreur lors de l'interrogation d'iTunes (erreur #{_consecutiveErrors}): {ex.Message}");
+                
                 // Assurer que l'état est cohérent en cas d'erreur
                 if (_isPlaying)
                 {
                     _isPlaying = false;
-                    PlayStateChanged?.Invoke(this, new PlayStateEventArgs(_isPlaying));
+                    PlayStateChanged?.Invoke(this, new PlayStateEventArgs(_isPlaying, "iTunes"));
                 }
             }
         }
@@ -341,10 +369,10 @@ namespace ItunesRPC.Services
                 if (resourceStream != null)
                 {
                     using (var fileStream = new FileStream(tempFilePath, System.IO.FileMode.Create))
-                using (resourceStream) // Utilisation de using pour assurer la libération des ressources
-                {
-                    resourceStream.CopyTo(fileStream);
-                }
+                    using (resourceStream) // Utilisation de using pour assurer la libération des ressources
+                    {
+                        resourceStream.CopyTo(fileStream);
+                    }
                 }
                 
                 return tempFilePath;
@@ -353,6 +381,38 @@ namespace ItunesRPC.Services
             {
                 Console.WriteLine($"Erreur lors de la sauvegarde de l'image: {ex.Message}");
                 return string.Empty;
+            }
+        }
+
+        private void CleanupOldArtworkFiles()
+        {
+            try
+            {
+                if (!Directory.Exists(_tempFolder))
+                    return;
+
+                var files = Directory.GetFiles(_tempFolder, "artwork_*.png");
+                var cutoffTime = DateTime.Now.AddHours(-1); // Supprimer les fichiers de plus d'1 heure
+
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        var fileInfo = new FileInfo(file);
+                        if (fileInfo.CreationTime < cutoffTime)
+                        {
+                            File.Delete(file);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Erreur lors de la suppression du fichier {file}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors du nettoyage des fichiers d'artwork: {ex.Message}");
             }
         }
     }

@@ -13,6 +13,9 @@ namespace ItunesRPC
             InitializeComponent();
             _updateService = updateService;
             
+            // Appliquer le thème actuel à cette fenêtre
+            ThemeManager.ApplyCurrentThemeToWindow(this);
+            
             // Charger les paramètres actuels
             LoadSettings();
         }

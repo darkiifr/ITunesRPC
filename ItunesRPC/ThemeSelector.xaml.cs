@@ -4,10 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 
 namespace ItunesRPC
 {
@@ -20,6 +22,10 @@ namespace ItunesRPC
         public ThemeSelector()
         {
             InitializeComponent();
+            
+            // Appliquer le thème actuel à cette fenêtre
+            ThemeManager.ApplyCurrentThemeToWindow(this);
+            
             LoadThemes();
             
             // Charger les paramètres actuels
@@ -50,7 +56,7 @@ namespace ItunesRPC
                 new ThemeItem
                 {
                     Name = "Sombre",
-                    ThemeType = ThemeManager.AppTheme.Dark,
+                    Type = ThemeManager.AppTheme.Dark,
                     PrimaryColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2D2D30")),
                     SecondaryColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#3E3E42")),
                     AccentColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007ACC")),
@@ -62,7 +68,7 @@ namespace ItunesRPC
                 new ThemeItem
                 {
                     Name = "Clair",
-                    ThemeType = ThemeManager.AppTheme.Light,
+                    Type = ThemeManager.AppTheme.Light,
                     PrimaryColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F0F0F0")),
                     SecondaryColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E5E5E5")),
                     AccentColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0078D7")),
@@ -74,7 +80,7 @@ namespace ItunesRPC
                 new ThemeItem
                 {
                     Name = "Bleu",
-                    ThemeType = ThemeManager.AppTheme.Blue,
+                    Type = ThemeManager.AppTheme.Blue,
                     PrimaryColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E3A5F")),
                     SecondaryColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2A4973")),
                     AccentColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00AEFF")),
@@ -86,7 +92,7 @@ namespace ItunesRPC
                 new ThemeItem
                 {
                     Name = "Violet",
-                    ThemeType = ThemeManager.AppTheme.Purple,
+                    Type = ThemeManager.AppTheme.Purple,
                     PrimaryColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#4A266A")),
                     SecondaryColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#5D3A7E")),
                     AccentColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#9C27B0")),
@@ -98,7 +104,7 @@ namespace ItunesRPC
                 new ThemeItem
                 {
                     Name = "Vert",
-                    ThemeType = ThemeManager.AppTheme.Green,
+                    Type = ThemeManager.AppTheme.Green,
                     PrimaryColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E5F34")),
                     SecondaryColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2A7349")),
                     AccentColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00C853")),
@@ -110,7 +116,7 @@ namespace ItunesRPC
                 new ThemeItem
                 {
                     Name = "Orange",
-                    ThemeType = ThemeManager.AppTheme.Orange,
+                    Type = ThemeManager.AppTheme.Orange,
                     PrimaryColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#5F3A1E")),
                     SecondaryColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#73492A")),
                     AccentColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF9800")),
@@ -122,7 +128,7 @@ namespace ItunesRPC
                 new ThemeItem
                 {
                     Name = "Rouge",
-                    ThemeType = ThemeManager.AppTheme.Red,
+                    Type = ThemeManager.AppTheme.Red,
                     PrimaryColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#5F1E1E")),
                     SecondaryColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#732A2A")),
                     AccentColor = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E53935")),
@@ -135,38 +141,108 @@ namespace ItunesRPC
             
             ThemesItemsControl.ItemsSource = _themes;
             
-            // Ajouter les gestionnaires d'événements pour la sélection
-            foreach (var item in ThemesItemsControl.Items)
-            {
-                var container = ThemesItemsControl.ItemContainerGenerator.ContainerFromItem(item) as FrameworkElement;
-                if (container != null)
-                {
-                    container.MouseLeftButtonDown += ThemeItem_Click;
-                }
-            }
+            // Attacher les gestionnaires d'événements après que les éléments soient générés
+            ThemesItemsControl.Loaded += (s, e) => AttachEventHandlers();
         }
         
-        private void ThemeItem_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void AttachEventHandlers()
         {
-            var element = sender as FrameworkElement;
-            if (element != null)
+            // Attendre que les conteneurs soient générés
+            this.Dispatcher.BeginInvoke(new Action(() =>
             {
-                var themeItem = element.DataContext as ThemeItem;
-                if (themeItem != null)
+                for (int i = 0; i < _themes.Count; i++)
+                {
+                    var container = ThemesItemsControl.ItemContainerGenerator.ContainerFromIndex(i) as FrameworkElement;
+                    if (container != null)
+                    {
+                        // Trouver le Border principal dans le template
+                        var border = FindChild<Border>(container, "ThemeCard");
+                        if (border != null)
+                        {
+                            border.MouseLeftButtonDown += ThemeCard_Click;
+                        }
+                        else
+                        {
+                            // Fallback: attacher à l'élément conteneur
+                            container.MouseLeftButtonDown += ThemeCard_Click;
+                        }
+                    }
+                }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+        
+        // Méthode utilitaire pour trouver un enfant par nom
+        private T? FindChild<T>(DependencyObject parent, string childName) where T : DependencyObject
+        {
+            if (parent == null) return null;
+            
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                
+                if (child is T && (child as FrameworkElement)?.Name == childName)
+                {
+                    return (T)child;
+                }
+                
+                var childOfChild = FindChild<T>(child, childName);
+                if (childOfChild != null)
+                    return childOfChild;
+            }
+            
+            return null;
+        }
+        
+        private void ThemeCard_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            try
+            {
+                if (sender is Border border && border.DataContext is ThemeItem selectedTheme)
                 {
                     // Désélectionner tous les thèmes
-                    foreach (var item in _themes)
+                    foreach (var theme in _themes)
                     {
-                        item.IsSelected = false;
+                        theme.IsSelected = false;
                     }
-                    
+
                     // Sélectionner le thème cliqué
-                    themeItem.IsSelected = true;
-                    _selectedTheme = themeItem.ThemeType;
+                    selectedTheme.IsSelected = true;
+
+                    // Appliquer le thème immédiatement à toutes les fenêtres
+                    ThemeManager.ChangeTheme(selectedTheme.Type);
+
+                    // Sauvegarder la sélection
+                    // Properties.Settings.Default.SelectedTheme = selectedTheme.Type.ToString();
+                    Properties.Settings.Default.Save();
+
+                    // Feedback visuel
+                    if (Application.Current.MainWindow is MainWindow mainWindow)
+                    {
+                        var statusText = mainWindow.FindName("StatusText") as TextBlock;
+                        if (statusText != null)
+                        {
+                            statusText.Text = $"Thème '{selectedTheme.Name}' appliqué avec succès";
+                            statusText.Foreground = new SolidColorBrush(Colors.Green);
+                            
+                            // Effacer le message après 3 secondes
+                            var timer = new System.Windows.Threading.DispatcherTimer();
+                            timer.Interval = TimeSpan.FromSeconds(3);
+                            timer.Tick += (s, args) =>
+                            {
+                                statusText.Text = "";
+                                timer.Stop();
+                            };
+                            timer.Start();
+                        }
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Erreur lors de l'application du thème : {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
-        
+
         private void UseCustomBackground_CheckedChanged(object sender, RoutedEventArgs e)
         {
             // Mettre à jour l'état des contrôles liés au fond personnalisé
@@ -237,68 +313,79 @@ namespace ItunesRPC
             // Réinitialiser le thème sélectionné au thème par défaut (Sombre)
             foreach (var item in _themes)
             {
-                item.IsSelected = item.ThemeType == ThemeManager.AppTheme.Dark;
-                if (item.IsSelected)
-                {
-                    _selectedTheme = item.ThemeType;
-                }
+                item.IsSelected = item.Type == ThemeManager.AppTheme.Dark;
             }
         }
         
         private void Apply_Click(object sender, RoutedEventArgs e)
         {
-            // Appliquer le thème sélectionné
-            ThemeManager.ChangeTheme(_selectedTheme);
-            
-            // Enregistrer les paramètres de fond personnalisé
-            Properties.Settings.Default.UseCustomBackground = UseCustomBackgroundCheckBox.IsChecked == true;
-            if (UseCustomBackgroundCheckBox.IsChecked == true && !string.IsNullOrEmpty(_selectedBackgroundPath))
+            try
             {
-                Properties.Settings.Default.CustomBackgroundPath = _selectedBackgroundPath;
-                
-                // Appliquer le fond personnalisé
-                try
+                // Trouver le thème sélectionné
+                var selectedTheme = _themes.FirstOrDefault(t => t.IsSelected);
+                if (selectedTheme != null)
                 {
+                    // Appliquer le thème sélectionné à toutes les fenêtres
+                    ThemeManager.ChangeTheme(selectedTheme.Type);
+                    
+                    // Sauvegarder la sélection
+                    // Properties.Settings.Default.SelectedTheme = selectedTheme.Type.ToString();
+                }
+                
+                // Enregistrer les paramètres de fond personnalisé
+                Properties.Settings.Default.UseCustomBackground = UseCustomBackgroundCheckBox.IsChecked == true;
+                if (UseCustomBackgroundCheckBox.IsChecked == true && !string.IsNullOrEmpty(_selectedBackgroundPath))
+                {
+                    Properties.Settings.Default.CustomBackgroundPath = _selectedBackgroundPath;
+                    
+                    // Appliquer le fond personnalisé
+                    try
+                    {
+                        var app = Application.Current;
+                        if (app != null && app.MainWindow != null)
+                        {
+                            var mainGrid = app.MainWindow.FindName("MainGrid") as Grid;
+                            if (mainGrid != null)
+                            {
+                                var image = new BitmapImage(new Uri(_selectedBackgroundPath));
+                                var brush = new ImageBrush(image)
+                                {
+                                    Stretch = Stretch.UniformToFill,
+                                    Opacity = BackgroundOpacitySlider.Value
+                                };
+                                mainGrid.Background = brush;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Erreur lors de l'application du fond personnalisé : " + ex.Message, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                else
+                {
+                    // Réinitialiser le fond à la couleur du thème
                     var app = Application.Current;
                     if (app != null && app.MainWindow != null)
                     {
                         var mainGrid = app.MainWindow.FindName("MainGrid") as Grid;
                         if (mainGrid != null)
                         {
-                            var image = new BitmapImage(new Uri(_selectedBackgroundPath));
-                            var brush = new ImageBrush(image)
-                            {
-                                Stretch = Stretch.UniformToFill,
-                                Opacity = 0.2 // Opacité réduite pour ne pas gêner la lisibilité
-                            };
-                            mainGrid.Background = brush;
+                            mainGrid.Background = (SolidColorBrush)app.Resources["AppBackgroundBrush"];
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Erreur lors de l'application du fond personnalisé : " + ex.Message, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                
+                Properties.Settings.Default.Save();
+                
+                // Fermer la fenêtre
+                DialogResult = true;
+                Close();
             }
-            else
+            catch (Exception ex)
             {
-                // Réinitialiser le fond à la couleur du thème
-                var app = Application.Current;
-                if (app != null && app.MainWindow != null)
-                {
-                    var mainGrid = app.MainWindow.FindName("MainGrid") as Grid;
-                    if (mainGrid != null)
-                    {
-                        mainGrid.Background = (SolidColorBrush)app.Resources["AppBackgroundBrush"];
-                    }
-                }
+                MessageBox.Show($"Erreur lors de l'application des paramètres : {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-            
-            Properties.Settings.Default.Save();
-            
-            // Fermer la fenêtre
-            DialogResult = true;
-            Close();
         }
     }
     
@@ -307,7 +394,7 @@ namespace ItunesRPC
         private bool _isSelected;
         
         public string Name { get; set; } = string.Empty;
-        public ThemeManager.AppTheme ThemeType { get; set; }
+        public ThemeManager.AppTheme Type { get; set; }
         public Brush PrimaryColor { get; set; } = new SolidColorBrush(Colors.Black);
         public Brush SecondaryColor { get; set; } = new SolidColorBrush(Colors.Black);
         public Brush AccentColor { get; set; } = new SolidColorBrush(Colors.Black);
