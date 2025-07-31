@@ -39,6 +39,13 @@ _ReSharper*/
 *.[Rr]e[Ss]harper
 *.DotSettings.user
 
+## Ignorer les profils de publication
+*.pubxml
+*.pubxml.user
+Properties/PublishProfiles/
+FolderProfile.pubxml*
+PublishProfiles/
+
 ## Ignorer les fichiers spécifiques à l'application
 *.tmp
 *.temp
