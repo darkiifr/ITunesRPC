@@ -23,15 +23,11 @@ namespace ItunesRPC
             {
                 Console.WriteLine("Démarrage de l'application...");
                 
-                // Vérifier les mises à jour au démarrage avec gestion d'erreur
+                // Initialiser le service de mise à jour avec gestion d'erreur
                 try
                 {
                     Console.WriteLine("Initialisation du service de mise à jour...");
                     _updateService = new UpdateService();
-                    if (_updateService != null && Settings.Default.CheckUpdateOnStartup)
-                    {
-                        _ = _updateService.CheckForUpdatesAsync();
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -186,6 +182,7 @@ namespace ItunesRPC
             _isExiting = true;
             _musicDetectionService?.Stop();
             _discordService?.Shutdown();
+            _updateService?.Dispose();
             _notifyIcon?.Dispose();
         }
 

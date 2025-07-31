@@ -681,6 +681,7 @@ namespace ItunesRPC
                 if (_updateService != null)
                 {
                     _updateService.UpdateStatusChanged -= UpdateService_StatusChanged;
+                    _updateService.Dispose();
                 }
             }
             catch (Exception ex)
