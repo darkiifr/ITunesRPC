@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using ItunesRPC.Models;
+using ItunesRPC.Services;
 using Windows.Media.Control;
 using Windows.Storage.Streams;
 
@@ -39,20 +40,20 @@ namespace ItunesRPC.Services
                 
                 if (_sessionManager != null)
                 {
-                    Console.WriteLine("WindowsMediaSessionService initialisé avec succès avec l'API Windows Media Control");
+                    LoggingService.Instance.LogInfo("WindowsMediaSessionService initialisé avec succès avec l'API Windows Media Control", "WindowsMediaSessionService");
                     _isInitialized = true;
                     return true;
                 }
                 else
                 {
-                    Console.WriteLine("Impossible d'obtenir le gestionnaire de sessions média");
+                    LoggingService.Instance.LogError("Impossible d'obtenir le gestionnaire de sessions média", "WindowsMediaSessionService");
                     _isInitialized = false;
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de l'initialisation de WindowsMediaSessionService: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de l'initialisation de WindowsMediaSessionService: {ex.Message}", "WindowsMediaSessionService", ex);
                 _isInitialized = false;
                 return false;
             }
@@ -156,14 +157,14 @@ namespace ItunesRPC.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Erreur lors de la sauvegarde de l'artwork: {ex.Message}");
+                    LoggingService.Instance.LogError($"Erreur lors de la sauvegarde de l'artwork: {ex.Message}", "WindowsMediaSessionService", ex);
                 }
 
                 return trackInfo;
             }
             catch (Exception ex)
              {
-                 Console.WriteLine($"Erreur lors de l'obtention des informations de la piste: {ex.Message}");
+                 LoggingService.Instance.LogError($"Erreur lors de l'obtention des informations de la piste: {ex.Message}", "WindowsMediaSessionService", ex);
                  return GetTrackFromWindowTitleAsync();
              }
         }
@@ -186,7 +187,7 @@ namespace ItunesRPC.Services
                     try
                     {
                         var sourceAppUserModelId = session.SourceAppUserModelId;
-                        Console.WriteLine($"Session trouvée: {sourceAppUserModelId}");
+                        LoggingService.Instance.LogInfo($"Session trouvée: {sourceAppUserModelId}", "WindowsMediaSessionService");
                         
                         // Vérifier si c'est une application de musique supportée
                         if (IsMusicApp(sourceAppUserModelId, targetAppName))
@@ -217,7 +218,7 @@ namespace ItunesRPC.Services
                                     }
                                     catch (Exception ex)
                                     {
-                                        Console.WriteLine($"Erreur lors de la sauvegarde de l'artwork: {ex.Message}");
+                                        LoggingService.Instance.LogError($"Erreur lors de la sauvegarde de l'artwork: {ex.Message}", "WindowsMediaSessionService", ex);
                                         trackInfo.ArtworkPath = GetDefaultArtworkPath();
                                     }
                                 }
@@ -226,25 +227,25 @@ namespace ItunesRPC.Services
                                     trackInfo.ArtworkPath = GetDefaultArtworkPath();
                                 }
 
-                                Console.WriteLine($"Piste détectée via Windows Media API: {trackInfo.Name} - {trackInfo.Artist}");
+                                // Piste détectée via Windows Media API
                                 return trackInfo;
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Erreur lors du traitement de la session: {ex.Message}");
+                        // Erreur lors du traitement de la session
                         continue;
                     }
                 }
 
                 // Fallback vers l'ancienne méthode si aucune session n'est trouvée
-                Console.WriteLine("Aucune session média trouvée, utilisation du fallback...");
+                // Aucune session média trouvée, utilisation du fallback
                 return GetTrackInfoFromProcesses(targetAppName);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la récupération des informations de piste: {ex.Message}");
+                // Erreur lors de la récupération des informations de piste
                 return GetTrackInfoFromProcesses(targetAppName);
             }
         }
@@ -311,7 +312,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la sauvegarde de l'artwork: {ex.Message}");
+                // Erreur lors de la sauvegarde de l'artwork
                 return GetDefaultArtworkPath();
             }
         }
@@ -343,7 +344,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de l'extraction des informations de piste: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de l'extraction des informations de piste: {ex.Message}", "WindowsMediaSessionService", ex);
                 return null;
             }
         }
@@ -356,7 +357,7 @@ namespace ItunesRPC.Services
                     return null;
 
                 var title = app.WindowTitle;
-                Console.WriteLine($"Titre de fenêtre détecté pour {app.AppName}: {title}");
+                LoggingService.Instance.LogInfo($"Titre de fenêtre détecté: {title}", "WindowsMediaSessionService");
 
                 // Patterns pour différentes applications
                 switch (app.ProcessName.ToLower())
@@ -377,7 +378,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du parsing du titre: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors du parsing du titre: {ex.Message}", "WindowsMediaSessionService", ex);
                 return null;
             }
         }
@@ -520,7 +521,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la sauvegarde de l'artwork: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la sauvegarde de l'artwork: {ex.Message}", "WindowsMediaSessionService", ex);
                 return null;
             }
         }
@@ -533,7 +534,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la sauvegarde de l'artwork: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la sauvegarde de l'artwork: {ex.Message}", "WindowsMediaSessionService", ex);
                 return GetDefaultArtworkPath();
             }
         }
@@ -546,7 +547,7 @@ namespace ItunesRPC.Services
              }
              catch (Exception ex)
              {
-                 Console.WriteLine($"Erreur lors de l'extraction des informations de piste: {ex.Message}");
+                 LoggingService.Instance.LogError($"Erreur lors de l'extraction des informations de piste: {ex.Message}", "WindowsMediaSessionService", ex);
                  return null;
              }
          }
@@ -571,7 +572,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la vérification de l'état de lecture: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la vérification de l'état de lecture: {ex.Message}", "WindowsMediaSessionService", ex);
                 return false;
             }
         }
@@ -590,7 +591,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la récupération des applications actives: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la récupération des applications actives: {ex.Message}", "WindowsMediaSessionService", ex);
                 return new List<string>();
             }
         }
@@ -601,11 +602,11 @@ namespace ItunesRPC.Services
             {
                 _sessionManager = null;
                 _isInitialized = false;
-                Console.WriteLine("WindowsMediaSessionService libéré");
+                LoggingService.Instance.LogInfo("WindowsMediaSessionService libéré", "WindowsMediaSessionService");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la libération de WindowsMediaSessionService: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la libération de WindowsMediaSessionService: {ex.Message}", "WindowsMediaSessionService", ex);
             }
         }
     }

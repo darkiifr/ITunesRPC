@@ -10,6 +10,16 @@
         ResizeMode="NoResize"
         Style="{StaticResource ModernWindow}">
     
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Styles/ModernStyles.xaml"/>
+                <ResourceDictionary Source="/Styles/ThemeStyles.xaml"/>
+                <ResourceDictionary Source="/ThemeConfig.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

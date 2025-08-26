@@ -519,4 +519,30 @@
             </Trigger>
         </Style.Triggers>
     </Style>
+    
+    <!-- Style pour les CheckBox d'options d'apparence -->
+    <Style x:Key="AppearanceOptionCheckBox" TargetType="CheckBox" BasedOn="{StaticResource ModernCheckBox}">
+        <Setter Property="Margin" Value="0,5"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+    </Style>
+    
+    <!-- Style pour les Slider d'apparence -->
+    <Style x:Key="AppearanceSlider" TargetType="Slider">
+        <Setter Property="Background" Value="{StaticResource SecondaryBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="Height" Value="20"/>
+        <Setter Property="Margin" Value="0,5,0,10"/>
+        <Setter Property="Minimum" Value="0"/>
+        <Setter Property="Maximum" Value="1"/>
+        <Setter Property="SmallChange" Value="0.01"/>
+        <Setter Property="LargeChange" Value="0.1"/>
+        <Setter Property="TickFrequency" Value="0.1"/>
+        <Setter Property="IsSnapToTickEnabled" Value="False"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource HoverBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
 </ResourceDictionary>

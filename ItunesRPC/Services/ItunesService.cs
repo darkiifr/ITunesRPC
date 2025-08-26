@@ -1,4 +1,5 @@
 using ItunesRPC.Models;
+using ItunesRPC.Services;
 using System;
 using System.IO;
 using System.Management;
@@ -121,7 +122,7 @@ namespace ItunesRPC.Services
             catch (Exception ex)
             {
                 _consecutiveErrors++;
-                Console.WriteLine($"Erreur lors de l'interrogation d'iTunes (erreur #{_consecutiveErrors}): {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de l'interrogation d'iTunes (erreur #{_consecutiveErrors}): {ex.Message}", "ItunesService", ex);
                 
                 // Assurer que l'état est cohérent en cas d'erreur
                 if (_isPlaying)
@@ -144,7 +145,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la vérification du processus iTunes: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la vérification du processus iTunes: {ex.Message}", "ItunesService", ex);
                 return false;
             }
         }
@@ -299,7 +300,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de l'obtention des informations de la piste: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de l'obtention des informations de la piste: {ex.Message}", "ItunesService", ex);
                 return null;
             }
         }
@@ -337,13 +338,13 @@ namespace ItunesRPC.Services
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Erreur lors de la sauvegarde de la pochette: {ex.Message}");
+                        LoggingService.Instance.LogError($"Erreur lors de la sauvegarde de la pochette: {ex.Message}", "ItunesService", ex);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de l'extraction de la pochette: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de l'extraction de la pochette: {ex.Message}", "ItunesService", ex);
             }
             
             // Utiliser l'image par défaut si aucune pochette n'est disponible
@@ -379,7 +380,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la sauvegarde de l'image: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la sauvegarde de l'image: {ex.Message}", "ItunesService", ex);
                 return string.Empty;
             }
         }
@@ -406,13 +407,13 @@ namespace ItunesRPC.Services
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Erreur lors de la suppression du fichier {file}: {ex.Message}");
+                        LoggingService.Instance.LogError($"Erreur lors de la suppression du fichier {file}: {ex.Message}", "ItunesService", ex);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du nettoyage des fichiers d'artwork: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors du nettoyage des fichiers d'artwork: {ex.Message}", "ItunesService", ex);
             }
         }
     }

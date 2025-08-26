@@ -8,6 +8,7 @@ using System.Timers;
 using System.Threading.Tasks;
 using System.Linq;
 using ItunesRPC.Models;
+using ItunesRPC.Services;
 
 namespace ItunesRPC.Services
 {
@@ -38,12 +39,12 @@ namespace ItunesRPC.Services
                 _isInitialized = await _mediaSessionService.InitializeAsync();
                 if (!_isInitialized)
                 {
-                    Console.WriteLine("Impossible d'initialiser Windows Media Session. Utilisation du mode de base.");
+                    LoggingService.Instance.LogWarning("Impossible d'initialiser Windows Media Session. Utilisation du mode de base.", "AppleMusicService");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de l'initialisation d'Apple Music Service: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de l'initialisation d'Apple Music Service: {ex.Message}", "AppleMusicService", ex);
                 _isInitialized = false;
             }
         }
@@ -62,7 +63,7 @@ namespace ItunesRPC.Services
         {
             try
             {
-                Console.WriteLine("=== AppleMusicService: Vérification de la musique ===");
+                LoggingService.Instance.LogInfo("=== AppleMusicService: Vérification de la musique ===", "AppleMusicService");
 
                 TrackInfo? trackInfo = null;
 
@@ -72,8 +73,8 @@ namespace ItunesRPC.Services
                     app.AppName.Equals("Apple Music", StringComparison.OrdinalIgnoreCase) ||
                     app.AppName.Equals("iTunes", StringComparison.OrdinalIgnoreCase)).ToList();
 
-                Console.WriteLine($"Applications musicales détectées: {string.Join(", ", detectedApps.Select(a => a.AppName))}");
-                Console.WriteLine($"Applications Apple/iTunes: {string.Join(", ", musicApps.Select(a => a.AppName))}");
+                LoggingService.Instance.LogInfo($"Applications musicales détectées: {string.Join(", ", detectedApps.Select(a => a.AppName))}", "AppleMusicService");
+                LoggingService.Instance.LogInfo($"Applications Apple/iTunes: {string.Join(", ", musicApps.Select(a => a.AppName))}", "AppleMusicService");
 
                 if (!musicApps.Any())
                 {
@@ -82,7 +83,7 @@ namespace ItunesRPC.Services
                         _lastTrackInfo = null;
                         TrackChanged?.Invoke(this, new TrackInfoEventArgs(null, "Apple Music"));
                     }
-                    Console.WriteLine("Aucune application musicale détectée");
+                    LoggingService.Instance.LogInfo("Aucune application musicale détectée", "AppleMusicService");
                     return;
                 }
 
@@ -93,11 +94,11 @@ namespace ItunesRPC.Services
                     {
                         foreach (var app in musicApps.OrderBy(a => a.Priority))
                         {
-                            Console.WriteLine($"Tentative de récupération depuis {app.AppName}...");
+                            LoggingService.Instance.LogInfo($"Tentative de récupération depuis {app.AppName}...", "AppleMusicService");
                             trackInfo = await _mediaSessionService.GetCurrentTrackInfoAsync(app.AppName);
                             if (trackInfo != null)
                             {
-                                Console.WriteLine($"Piste trouvée via {app.AppName}: {trackInfo.Name} - {trackInfo.Artist}");
+                                LoggingService.Instance.LogInfo($"Piste trouvée via {app.AppName}: {trackInfo.Name} - {trackInfo.Artist}", "AppleMusicService");
                                 break;
                             }
                         }
@@ -105,34 +106,34 @@ namespace ItunesRPC.Services
                         // Si pas trouvé avec le nom détecté, essayer avec "Apple Music" directement
                         if (trackInfo == null)
                         {
-                            Console.WriteLine("Tentative avec 'Apple Music' générique...");
+                            LoggingService.Instance.LogInfo("Tentative avec 'Apple Music' générique...", "AppleMusicService");
                             trackInfo = await _mediaSessionService.GetCurrentTrackInfoAsync("Apple Music");
                         }
                         
                         // Essayer avec "iTunes" si Apple Music n'a pas fonctionné
                         if (trackInfo == null)
                         {
-                            Console.WriteLine("Tentative avec 'iTunes' générique...");
+                            LoggingService.Instance.LogInfo("Tentative avec 'iTunes' générique...", "AppleMusicService");
                             trackInfo = await _mediaSessionService.GetCurrentTrackInfoAsync("iTunes");
                         }
                         
                         // Essayer avec "Music" générique
                         if (trackInfo == null)
                         {
-                            Console.WriteLine("Tentative avec 'Music' générique...");
+                            LoggingService.Instance.LogInfo("Tentative avec 'Music' générique...", "AppleMusicService");
                             trackInfo = await _mediaSessionService.GetCurrentTrackInfoAsync("Music");
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Erreur Windows Media Session: {ex.Message}");
+                        LoggingService.Instance.LogError($"Erreur Windows Media Session: {ex.Message}", "AppleMusicService", ex);
                     }
                 }
 
                 // Mode de fallback si Windows Media Session ne fonctionne pas
                 if (trackInfo == null)
                 {
-                    Console.WriteLine("Utilisation du mode fallback...");
+                    LoggingService.Instance.LogInfo("Utilisation du mode fallback...", "AppleMusicService");
                     trackInfo = CreateFallbackTrackInfo(musicApps.First());
                 }
 
@@ -142,7 +143,7 @@ namespace ItunesRPC.Services
                     var previousIsPlaying = _lastTrackInfo?.IsPlaying ?? false;
                     _lastTrackInfo = trackInfo;
                     
-                    Console.WriteLine($"Nouvelle piste détectée: {trackInfo.Name} - {trackInfo.Artist}");
+                    LoggingService.Instance.LogInfo($"Nouvelle piste détectée: {trackInfo.Name} - {trackInfo.Artist}", "AppleMusicService");
                     TrackChanged?.Invoke(this, new TrackInfoEventArgs(trackInfo, "Apple Music"));
                     
                     // Notifier le changement d'état de lecture si nécessaire
@@ -153,7 +154,7 @@ namespace ItunesRPC.Services
                 }
                 else if (trackInfo != null)
                 {
-                    Console.WriteLine($"Piste inchangée: {trackInfo.Name} - {trackInfo.Artist}");
+                    LoggingService.Instance.LogInfo($"Piste inchangée: {trackInfo.Name} - {trackInfo.Artist}", "AppleMusicService");
                 }
 
                 _consecutiveErrors = 0;
@@ -162,7 +163,7 @@ namespace ItunesRPC.Services
             catch (Exception ex)
             {
                 _consecutiveErrors++;
-                Console.WriteLine($"Erreur dans AppleMusicService: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur dans AppleMusicService: {ex.Message}", "AppleMusicService", ex);
 
                 if (_consecutiveErrors >= MAX_CONSECUTIVE_ERRORS)
                 {
@@ -177,7 +178,7 @@ namespace ItunesRPC.Services
 
         private TrackInfo CreateFallbackTrackInfo(DetectedMusicApp app)
         {
-            Console.WriteLine($"Création d'une piste fallback pour {app.AppName}");
+            LoggingService.Instance.LogInfo($"Création d'une piste fallback pour {app.AppName}", "AppleMusicService");
             
             // Si on a un titre de fenêtre, essayer de l'analyser
             if (!string.IsNullOrEmpty(app.WindowTitle) && 

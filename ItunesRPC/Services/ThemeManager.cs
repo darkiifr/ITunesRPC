@@ -1,8 +1,11 @@
 using System;
-using System.Windows;
-using System.Windows.Media;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Collections.Concurrent;
+using System.Windows.Threading;
 
 namespace ItunesRPC.Services
 {
@@ -38,8 +41,54 @@ namespace ItunesRPC.Services
         // Événement pour notifier les changements de thème
         public static event EventHandler<AppTheme>? ThemeChanged;
         
+        // Liste des fenêtres enregistrées pour la propagation automatique des thèmes
+        private static readonly List<WeakReference> _registeredWindows = new List<WeakReference>();
+        
         // Propriété pour obtenir le thème actuel
         public static AppTheme CurrentTheme => _currentTheme;
+        
+        // Méthode pour enregistrer une fenêtre pour la propagation automatique des thèmes
+        public static void RegisterWindow(Window window)
+        {
+            if (window == null) return;
+            
+            // Nettoyer les références mortes
+            CleanupDeadReferences();
+            
+            // Vérifier si la fenêtre n'est pas déjà enregistrée
+            bool alreadyRegistered = _registeredWindows.Any(wr => wr.IsAlive && ReferenceEquals(wr.Target, window));
+            
+            if (!alreadyRegistered)
+            {
+                _registeredWindows.Add(new WeakReference(window));
+                
+                // Appliquer immédiatement le thème actuel à la nouvelle fenêtre
+                ApplyThemeToWindow(window, _currentTheme, GetThemeResourceName(_currentTheme));
+                
+                // S'abonner à l'événement de fermeture pour nettoyer automatiquement
+                window.Closed += (sender, e) => UnregisterWindow(window);
+            }
+        }
+        
+        // Méthode pour désenregistrer une fenêtre
+        public static void UnregisterWindow(Window window)
+        {
+            if (window == null) return;
+            
+            _registeredWindows.RemoveAll(wr => !wr.IsAlive || ReferenceEquals(wr.Target, window));
+        }
+        
+        // Méthode pour nettoyer les références mortes
+        private static void CleanupDeadReferences()
+        {
+            _registeredWindows.RemoveAll(wr => !wr.IsAlive);
+        }
+        
+        // Méthode pour obtenir le nom de ressource d'un thème
+        private static string GetThemeResourceName(AppTheme theme)
+        {
+            return ThemeResourceNames.TryGetValue(theme, out string? resourceName) ? resourceName ?? "DarkTheme" : "DarkTheme";
+        }
         
         // Méthode pour changer de thème
         public static void ChangeTheme(AppTheme theme)
@@ -47,7 +96,7 @@ namespace ItunesRPC.Services
             // Stocker le nouveau thème
             _currentTheme = theme;
             
-            // Appliquer le thème à toutes les fenêtres
+            // Appliquer le thème à toutes les fenêtres (existantes et enregistrées)
             ApplyThemeToAllWindows(theme);
             
             // Sauvegarder le thème dans les paramètres
@@ -68,11 +117,32 @@ namespace ItunesRPC.Services
                 // Appliquer le thème aux ressources de l'application
                 ApplyThemeToApplication(theme, resourceName);
                 
-                // Appliquer le thème à toutes les fenêtres ouvertes
-                foreach (Window window in Application.Current.Windows)
+                // Forcer la mise à jour de toutes les ressources de l'application
+                Application.Current.Dispatcher.Invoke(() =>
                 {
-                    ApplyThemeToWindow(window, theme, resourceName);
-                }
+                    // Invalider toutes les ressources visuelles
+                    foreach (Window window in Application.Current.Windows)
+                    {
+                        ApplyThemeToWindow(window, theme, resourceName);
+                        
+                        // Forcer la mise à jour récursive de tous les éléments visuels sans perdre les styles
+                        InvalidateVisualTreeSafe(window);
+                    }
+                    
+                    // Appliquer le thème aux fenêtres enregistrées (qui pourraient ne pas être dans Application.Current.Windows)
+                    CleanupDeadReferences();
+                    foreach (WeakReference windowRef in _registeredWindows.ToList())
+                    {
+                        if (windowRef.IsAlive && windowRef.Target is Window registeredWindow)
+                        {
+                            ApplyThemeToWindow(registeredWindow, theme, resourceName);
+                            InvalidateVisualTreeSafe(registeredWindow);
+                        }
+                    }
+                    
+                    // Recharger seulement les ressources de thème sans vider toutes les ressources
+                    ReloadThemeResources();
+                });
             }
             catch (Exception ex)
             {
@@ -89,16 +159,24 @@ namespace ItunesRPC.Services
                 
                 if (appResources[resourceName] is ResourceDictionary themeDictionary)
                 {
-                    UpdateColorAndBrush(appResources, themeDictionary, "PrimaryColor", "PrimaryBrush");
-                    UpdateColorAndBrush(appResources, themeDictionary, "SecondaryColor", "SecondaryBrush");
-                    UpdateColorAndBrush(appResources, themeDictionary, "AccentColor", "AccentBrush");
-                    UpdateColorAndBrush(appResources, themeDictionary, "TextPrimaryColor", "TextPrimaryBrush");
-                    UpdateColorAndBrush(appResources, themeDictionary, "TextSecondaryColor", "TextSecondaryBrush");
-                    UpdateColorAndBrush(appResources, themeDictionary, "BorderColor", "BorderBrush");
-                    UpdateColorAndBrush(appResources, themeDictionary, "BackgroundColor", "BackgroundBrush");
-                    UpdateColorAndBrush(appResources, themeDictionary, "HoverColor", "HoverBrush");
-                    UpdateColorAndBrush(appResources, themeDictionary, "AppBackgroundColor", "AppBackgroundBrush");
-                    UpdateColorAndBrush(appResources, themeDictionary, "CardBackgroundColor", "CardBackgroundBrush");
+                    // Mettre à jour toutes les couleurs et brosses du thème
+                    var colorKeys = new[]
+                    {
+                        "PrimaryColor", "SecondaryColor", "AccentColor", "TextPrimaryColor", "TextSecondaryColor",
+                        "BorderColor", "BackgroundColor", "HoverColor", "AppBackgroundColor", "CardBackgroundColor"
+                    };
+                    
+                    foreach (var colorKey in colorKeys)
+                    {
+                        var brushKey = colorKey.Replace("Color", "Brush");
+                        UpdateColorAndBrush(appResources, themeDictionary, colorKey, brushKey);
+                    }
+                    
+                    // Forcer la mise à jour de tous les dictionnaires de ressources fusionnés
+                    foreach (var mergedDict in appResources.MergedDictionaries)
+                    {
+                        UpdateMergedDictionaryColors(mergedDict, themeDictionary, colorKeys);
+                    }
                 }
             }
             catch (Exception ex)
@@ -152,6 +230,12 @@ namespace ItunesRPC.Services
                     newBrush.Freeze();
                     window.Resources[brushKey] = newBrush;
                 }
+            }
+            
+            // Mettre à jour également les dictionnaires fusionnés de la fenêtre
+            foreach (var mergedDict in window.Resources.MergedDictionaries)
+            {
+                UpdateMergedDictionaryColors(mergedDict, themeDictionary, colorKeys);
             }
         }
         
@@ -266,6 +350,157 @@ namespace ItunesRPC.Services
             }
             
             return colors;
+        }
+        
+        // Méthode pour invalider récursivement l'arbre visuel sans perdre les styles
+        private static void InvalidateVisualTreeSafe(DependencyObject parent)
+        {
+            try
+            {
+                if (parent is FrameworkElement element)
+                {
+                    element.InvalidateVisual();
+                    element.UpdateLayout();
+                    
+                    // Forcer la mise à jour des ressources sans réinitialiser le style
+                    element.InvalidateProperty(FrameworkElement.StyleProperty);
+                }
+                
+                // Parcourir récursivement tous les enfants
+                int childCount = VisualTreeHelper.GetChildrenCount(parent);
+                for (int i = 0; i < childCount; i++)
+                {
+                    var child = VisualTreeHelper.GetChild(parent, i);
+                    InvalidateVisualTreeSafe(child);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur lors de l'invalidation de l'arbre visuel: {ex.Message}");
+            }
+        }
+        
+        // Méthode pour recharger seulement les ressources de thème
+        private static void ReloadThemeResources()
+        {
+            try
+            {
+                var app = Application.Current;
+                
+                // Recharger seulement les ressources de thème
+                var themeResourceUris = new[]
+                {
+                    "/Styles/ThemeStyles.xaml"
+                };
+                
+                foreach (var uri in themeResourceUris)
+                {
+                    try
+                    {
+                        // Trouver et remplacer le dictionnaire de thème existant
+                        var existingDict = app.Resources.MergedDictionaries
+                            .FirstOrDefault(d => d.Source?.ToString().Contains("ThemeStyles.xaml") == true);
+                        
+                        if (existingDict != null)
+                        {
+                            var index = app.Resources.MergedDictionaries.IndexOf(existingDict);
+                            app.Resources.MergedDictionaries.RemoveAt(index);
+                            
+                            var newResourceDict = new ResourceDictionary
+                            {
+                                Source = new Uri(uri, UriKind.Relative)
+                            };
+                            app.Resources.MergedDictionaries.Insert(index, newResourceDict);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Erreur lors du rechargement de {uri}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur lors du rechargement des ressources de thème: {ex.Message}");
+            }
+        }
+        
+        // Méthode pour recharger les ressources de l'application
+        private static void LoadApplicationResources()
+        {
+            try
+            {
+                var app = Application.Current;
+                var resourceUris = new[]
+                {
+                    "/Styles/AnimationResources.xaml",
+                    "/Styles/ModernStyles.xaml",
+                    "/Styles/ToolbarStyles.xaml",
+                    "/Styles/ThemeStyles.xaml",
+                    "/Styles/StatusIndicatorStyles.xaml",
+                    "/Styles/BackgroundStyles.xaml",
+                    "/ThemeConfig.xaml"
+                };
+                
+                foreach (var uri in resourceUris)
+                {
+                    try
+                    {
+                        var resourceDict = new ResourceDictionary
+                        {
+                            Source = new Uri(uri, UriKind.Relative)
+                        };
+                        app.Resources.MergedDictionaries.Add(resourceDict);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Erreur lors du chargement de {uri}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur lors du rechargement des ressources: {ex.Message}");
+            }
+        }
+        
+        // Méthode pour mettre à jour les couleurs dans les dictionnaires fusionnés
+        private static void UpdateMergedDictionaryColors(ResourceDictionary dictionary, ResourceDictionary themeDictionary, string[] colorKeys)
+        {
+            try
+            {
+                foreach (var colorKey in colorKeys)
+                {
+                    if (themeDictionary[colorKey] is Color color)
+                    {
+                        var brushKey = colorKey.Replace("Color", "Brush");
+                        
+                        // Mettre à jour la couleur
+                        if (dictionary.Contains(colorKey))
+                        {
+                            dictionary[colorKey] = color;
+                        }
+                        
+                        // Mettre à jour la brosse
+                        if (dictionary.Contains(brushKey))
+                        {
+                            var newBrush = new SolidColorBrush(color);
+                            newBrush.Freeze();
+                            dictionary[brushKey] = newBrush;
+                        }
+                    }
+                }
+                
+                // Mettre à jour récursivement les dictionnaires fusionnés
+                foreach (var mergedDict in dictionary.MergedDictionaries)
+                {
+                    UpdateMergedDictionaryColors(mergedDict, themeDictionary, colorKeys);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur lors de la mise à jour des couleurs du dictionnaire fusionné: {ex.Message}");
+            }
         }
     }
 }

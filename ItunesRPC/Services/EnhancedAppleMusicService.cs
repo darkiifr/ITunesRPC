@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 using ItunesRPC.Models;
+using ItunesRPC.Services;
 using Windows.Media.Control;
 
 namespace ItunesRPC.Services
@@ -46,7 +47,7 @@ namespace ItunesRPC.Services
         {
             try
             {
-                Console.WriteLine("Initialisation du service Apple Music amélioré...");
+                LoggingService.Instance.LogInfo("Initialisation du service Apple Music amélioré...", "EnhancedAppleMusicService");
                 
                 // Initialiser le service de session média Windows
                 _isInitialized = await _mediaSessionService.InitializeAsync();
@@ -57,20 +58,20 @@ namespace ItunesRPC.Services
                     try
                     {
                         _sessionManager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
-                        Console.WriteLine("Gestionnaire de sessions média initialisé avec succès");
+                        LoggingService.Instance.LogInfo("Gestionnaire de sessions média initialisé avec succès", "EnhancedAppleMusicService");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Impossible d'initialiser le gestionnaire de sessions: {ex.Message}");
+                        LoggingService.Instance.LogError($"Impossible d'initialiser le gestionnaire de sessions: {ex.Message}", "EnhancedAppleMusicService", ex);
                     }
                 }
 
-                Console.WriteLine($"Service Apple Music amélioré initialisé: {_isInitialized}");
+                LoggingService.Instance.LogInfo($"Service Apple Music amélioré initialisé: {_isInitialized}", "EnhancedAppleMusicService");
                 return _isInitialized;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de l'initialisation du service Apple Music amélioré: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de l'initialisation du service Apple Music amélioré: {ex.Message}", "EnhancedAppleMusicService", ex);
                 _isInitialized = false;
                 return false;
             }
@@ -81,14 +82,14 @@ namespace ItunesRPC.Services
             if (_isInitialized)
             {
                 _timer.Start();
-                Console.WriteLine("Service Apple Music amélioré démarré");
+                LoggingService.Instance.LogInfo("Service Apple Music amélioré démarré", "EnhancedAppleMusicService");
             }
         }
 
         public void Stop()
         {
             _timer.Stop();
-            Console.WriteLine("Service Apple Music amélioré arrêté");
+            LoggingService.Instance.LogInfo("Service Apple Music amélioré arrêté", "EnhancedAppleMusicService");
         }
 
         private async void Timer_Elapsed(object? sender, ElapsedEventArgs e)
@@ -120,12 +121,12 @@ namespace ItunesRPC.Services
                         PlayStateChanged?.Invoke(this, new PlayStateEventArgs(trackInfo.IsPlaying, "Apple Music"));
                     }
                     
-                    Console.WriteLine($"Nouvelle piste détectée: {trackInfo.Name} - {trackInfo.Artist}");
+                    LoggingService.Instance.LogInfo($"Nouvelle piste détectée: {trackInfo.Name} - {trackInfo.Artist}", "EnhancedAppleMusicService");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur dans le timer Apple Music amélioré: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur dans le timer Apple Music amélioré: {ex.Message}", "EnhancedAppleMusicService", ex);
             }
         }
 
@@ -137,7 +138,7 @@ namespace ItunesRPC.Services
                 var trackInfo = await GetTrackFromMediaSession();
                 if (trackInfo != null)
                 {
-                    Console.WriteLine("Piste détectée via API Windows Media Session directe");
+                    LoggingService.Instance.LogInfo("Piste détectée via API Windows Media Session directe", "EnhancedAppleMusicService");
                     return trackInfo;
                 }
 
@@ -145,7 +146,7 @@ namespace ItunesRPC.Services
                 trackInfo = await _mediaSessionService.GetCurrentTrackInfoAsync("Apple Music");
                 if (trackInfo != null)
                 {
-                    Console.WriteLine("Piste détectée via service Windows Media Session");
+                    LoggingService.Instance.LogInfo("Piste détectée via service Windows Media Session", "EnhancedAppleMusicService");
                     return trackInfo;
                 }
 
@@ -153,16 +154,16 @@ namespace ItunesRPC.Services
                 trackInfo = GetTrackFromWindowTitle();
                 if (trackInfo != null)
                 {
-                    Console.WriteLine("Piste détectée via titre de fenêtre");
+                    LoggingService.Instance.LogInfo("Piste détectée via titre de fenêtre", "EnhancedAppleMusicService");
                     return trackInfo;
                 }
 
-                Console.WriteLine("Aucune piste détectée avec les méthodes disponibles");
+                LoggingService.Instance.LogInfo("Aucune piste détectée avec les méthodes disponibles", "EnhancedAppleMusicService");
                 return null;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la récupération des informations de piste: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la récupération des informations de piste: {ex.Message}", "EnhancedAppleMusicService", ex);
                 return null;
             }
         }
@@ -225,7 +226,7 @@ namespace ItunesRPC.Services
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Erreur lors du traitement de la session {sourceId}: {ex.Message}");
+                            LoggingService.Instance.LogError($"Erreur lors du traitement de la session {sourceId}: {ex.Message}", "EnhancedAppleMusicService", ex);
                             continue;
                         }
                     }
@@ -235,7 +236,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la récupération via session média: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la récupération via session média: {ex.Message}", "EnhancedAppleMusicService", ex);
                 return null;
             }
         }
@@ -259,7 +260,7 @@ namespace ItunesRPC.Services
                                 GetWindowText(process.MainWindowHandle, title, title.Capacity);
                                 
                                 var windowTitle = title.ToString();
-                                Console.WriteLine($"Titre de fenêtre Apple Music: {windowTitle}");
+                                LoggingService.Instance.LogInfo($"Titre de fenêtre Apple Music: {windowTitle}", "EnhancedAppleMusicService");
                                 
                                 var trackInfo = ParseAppleMusicWindowTitle(windowTitle);
                                 if (trackInfo != null)
@@ -271,7 +272,7 @@ namespace ItunesRPC.Services
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Erreur lors du traitement du processus {process.ProcessName}: {ex.Message}");
+                        LoggingService.Instance.LogError($"Erreur lors du traitement du processus {process.ProcessName}: {ex.Message}", "EnhancedAppleMusicService", ex);
                         continue;
                     }
                 }
@@ -280,7 +281,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la détection par titre de fenêtre: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la détection par titre de fenêtre: {ex.Message}", "EnhancedAppleMusicService", ex);
                 return null;
             }
         }
@@ -346,7 +347,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la vérification d'Apple Music: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la vérification d'Apple Music: {ex.Message}", "EnhancedAppleMusicService", ex);
                 return false;
             }
         }
@@ -369,7 +370,7 @@ namespace ItunesRPC.Services
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Erreur lors de la recherche du processus {processName}: {ex.Message}");
+                        LoggingService.Instance.LogError($"Erreur lors de la recherche du processus {processName}: {ex.Message}", "EnhancedAppleMusicService", ex);
                     }
                 }
 
@@ -397,7 +398,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la recherche des processus Apple Music: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la recherche des processus Apple Music: {ex.Message}", "EnhancedAppleMusicService", ex);
             }
 
             return processes;
@@ -424,7 +425,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la sauvegarde de l'artwork: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la sauvegarde de l'artwork: {ex.Message}", "EnhancedAppleMusicService", ex);
                 return GetDefaultArtworkPath();
             }
         }
@@ -454,7 +455,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la libération des ressources du service Apple Music amélioré: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la libération des ressources du service Apple Music amélioré: {ex.Message}", "EnhancedAppleMusicService", ex);
             }
         }
     }

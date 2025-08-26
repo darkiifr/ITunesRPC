@@ -20,6 +20,7 @@ namespace ItunesRPC
         private readonly DiscordRpcService _discordService;
         private readonly UpdateService _updateService;
         private System.Timers.Timer _progressTimer;
+        private DebugConsoleWindow _debugConsole;
 
         public MainWindow(MusicDetectionService musicService, DiscordRpcService discordService, UpdateService updateService)
         {
@@ -47,10 +48,14 @@ namespace ItunesRPC
 
                 // Charger les paramètres
                 LoadSettings();
+                
+                // Initialiser le service de logging
+                LoggingService.Instance.LogInfo("Fenêtre principale initialisée", "MainWindow");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de l'initialisation de MainWindow: {ex.Message}");
+                // Console.WriteLine($"Erreur lors de l'initialisation de MainWindow: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de l'initialisation de MainWindow: {ex.Message}", "MainWindow", ex);
                 throw;
             }
         }
@@ -58,7 +63,7 @@ namespace ItunesRPC
         private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             // Ajuster l'interface en fonction de la taille de la fenêtre
-            if (e.NewSize.Width < 850)
+            if (e.NewSize.Width < 950)
             {
                 // Réduire la taille des éléments pour les petites fenêtres
                 TrackNameText.FontSize = 14;
@@ -72,7 +77,7 @@ namespace ItunesRPC
             }
             
             // Ajuster la hauteur des éléments en fonction de la hauteur de la fenêtre
-            if (e.NewSize.Height < 550)
+            if (e.NewSize.Height < 620)
             {
                 // Réduire les marges pour les fenêtres basses
                 TrackProgressBar.Margin = new Thickness(0, 5, 0, 0);
@@ -104,8 +109,8 @@ namespace ItunesRPC
                 // Charger et appliquer le thème sauvegardé
                 ThemeManager.LoadSavedTheme();
                 
-                // Appliquer le thème actuel à cette fenêtre
-                ThemeManager.ApplyCurrentThemeToWindow(this);
+                // Enregistrer cette fenêtre pour la propagation automatique des thèmes
+                ThemeManager.RegisterWindow(this);
                 
                 // Appliquer le fond personnalisé
                 ApplyCustomBackground();
@@ -127,7 +132,7 @@ namespace ItunesRPC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du chargement des paramètres: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors du chargement des paramètres: {ex.Message}", "MainWindow", ex);
                 // Utiliser des valeurs par défaut en cas d'erreur avec vérifications de sécurité
                 if (AutoStartCheckBox != null)
                     AutoStartCheckBox.IsChecked = false;
@@ -150,7 +155,7 @@ namespace ItunesRPC
                 }
                 catch (Exception themeEx)
                 {
-                    Console.WriteLine($"Erreur lors de l'application du thème par défaut: {themeEx.Message}");
+                    LoggingService.Instance.LogError($"Erreur lors de l'application du thème par défaut: {themeEx.Message}", "MainWindow", themeEx);
                 }
                 
                 // Utiliser le fond par défaut
@@ -167,7 +172,7 @@ namespace ItunesRPC
                 }
                 catch (Exception bgEx)
                 {
-                    Console.WriteLine($"Erreur lors de l'application du fond par défaut: {bgEx.Message}");
+                    LoggingService.Instance.LogError($"Erreur lors de l'application du fond par défaut: {bgEx.Message}", "MainWindow", bgEx);
                 }
             }
         }
@@ -194,7 +199,7 @@ namespace ItunesRPC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de l'initialisation des statuts: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de l'initialisation des statuts: {ex.Message}", "MainWindow", ex);
             }
         }
         
@@ -205,7 +210,7 @@ namespace ItunesRPC
             double height = this.ActualHeight;
             
             // Simuler un événement de redimensionnement en ajustant manuellement les éléments
-            if (width < 850)
+            if (width < 950)
             {
                 TrackNameText.FontSize = 14;
                 ArtistText.FontSize = 14;
@@ -216,7 +221,7 @@ namespace ItunesRPC
                 ArtistText.FontSize = 16;
             }
             
-            if (height < 550)
+            if (height < 620)
             {
                 TrackProgressBar.Margin = new Thickness(0, 5, 0, 0);
             }
@@ -245,7 +250,7 @@ namespace ItunesRPC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la vérification d'iTunes: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la vérification d'iTunes: {ex.Message}", "MainWindow", ex);
             }
         }
         
@@ -263,7 +268,7 @@ namespace ItunesRPC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la mise à jour du statut: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la mise à jour du statut: {ex.Message}", "MainWindow", ex);
             }
         }
 
@@ -337,7 +342,7 @@ namespace ItunesRPC
                     {
                         // En cas d'erreur, utiliser l'image par défaut
                         LoadDefaultAlbumArt();
-                        Console.WriteLine($"Erreur lors du chargement de l'image: {ex.Message}");
+                        LoggingService.Instance.LogError($"Erreur lors du chargement de l'image: {ex.Message}", "MainWindow", ex);
                     }
                 }
                 else
@@ -362,7 +367,7 @@ namespace ItunesRPC
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Erreur lors de l'affichage de la notification: {ex.Message}");
+                        LoggingService.Instance.LogError($"Erreur lors de l'affichage de la notification: {ex.Message}", "MainWindow", ex);
                     }
                 }
             });
@@ -445,9 +450,13 @@ namespace ItunesRPC
                         TrackProgressBar.Value = currentTrack.ProgressPercentage;
                     }
                     
-                    // Calculer le temps écoulé et le temps restant
+                    // Calculer le temps écoulé et la durée totale
                     TimeSpan elapsed = DateTime.Now - currentTrack.StartTime;
-                    TimeSpan remaining = currentTrack.EndTime - DateTime.Now;
+                    TimeSpan totalDuration = currentTrack.Duration;
+                    
+                    // S'assurer que le temps écoulé ne dépasse pas la durée totale
+                    if (elapsed > totalDuration)
+                        elapsed = totalDuration;
                     
                     // Mettre à jour les affichages de temps avec vérification de nullité
                     if (ElapsedTimeText != null)
@@ -457,13 +466,13 @@ namespace ItunesRPC
                     
                     if (RemainingTimeText != null)
                     {
-                        RemainingTimeText.Text = string.Format("-{0:mm\\:ss}", remaining);
+                        RemainingTimeText.Text = string.Format("{0:mm\\:ss}", totalDuration);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la mise à jour de la progression: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la mise à jour de la progression: {ex.Message}", "MainWindow", ex);
             }
         }
         
@@ -481,11 +490,113 @@ namespace ItunesRPC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la reconnexion Discord: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la reconnexion Discord: {ex.Message}", "MainWindow", ex);
                 if (AppStatusText != null)
                 {
                     AppStatusText.Text = $"Erreur de reconnexion Discord: {ex.Message}";
                 }
+            }
+        }
+        
+        private void Diagnostic_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_discordService == null)
+                {
+                    MessageBox.Show("Service Discord non initialisé.", "Diagnostic Discord", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                
+                var diagnosticInfo = _discordService.GetDiagnosticInfo();
+                
+                // Créer une fenêtre de diagnostic
+                Window diagnosticWindow = new Window
+                {
+                    Title = "Diagnostic Discord RPC",
+                    Width = 500,
+                    Height = 400,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    Owner = this,
+                    Style = (Style)FindResource("ModernWindow"),
+                    ResizeMode = ResizeMode.CanResize
+                };
+                
+                // Créer le contenu de la fenêtre
+                Grid mainGrid = new Grid { Margin = new Thickness(15) };
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                
+                // Titre
+                TextBlock titleBlock = new TextBlock
+                {
+                    Text = "Informations de diagnostic Discord RPC",
+                    FontSize = 16,
+                    FontWeight = FontWeights.Bold,
+                    Margin = new Thickness(0, 0, 0, 15)
+                };
+                Grid.SetRow(titleBlock, 0);
+                mainGrid.Children.Add(titleBlock);
+                
+                // Zone de texte avec les informations
+                TextBox diagnosticTextBox = new TextBox
+                {
+                    Text = diagnosticInfo,
+                    IsReadOnly = true,
+                    TextWrapping = TextWrapping.Wrap,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    FontFamily = new FontFamily("Consolas, Courier New"),
+                    FontSize = 12,
+                    Padding = new Thickness(10),
+                    Background = (Brush)FindResource("SecondaryBrush"),
+                    Foreground = (Brush)FindResource("TextPrimaryBrush"),
+                    BorderBrush = (Brush)FindResource("BorderBrush"),
+                    BorderThickness = new Thickness(1)
+                };
+                Grid.SetRow(diagnosticTextBox, 1);
+                mainGrid.Children.Add(diagnosticTextBox);
+                
+                // Boutons
+                StackPanel buttonPanel = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Margin = new Thickness(0, 15, 0, 0)
+                };
+                
+                Button refreshButton = new Button
+                {
+                    Content = "Actualiser",
+                    Style = (Style)FindResource("ModernButton"),
+                    Margin = new Thickness(0, 0, 10, 0),
+                    Padding = new Thickness(15, 8, 15, 8)
+                };
+                refreshButton.Click += (s, args) => {
+                    diagnosticTextBox.Text = _discordService.GetDiagnosticInfo();
+                };
+                
+                Button closeButton = new Button
+                {
+                    Content = "Fermer",
+                    Style = (Style)FindResource("ModernButton"),
+                    Padding = new Thickness(15, 8, 15, 8)
+                };
+                closeButton.Click += (s, args) => diagnosticWindow.Close();
+                
+                buttonPanel.Children.Add(refreshButton);
+                buttonPanel.Children.Add(closeButton);
+                Grid.SetRow(buttonPanel, 2);
+                mainGrid.Children.Add(buttonPanel);
+                
+                diagnosticWindow.Content = mainGrid;
+                diagnosticWindow.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError($"Erreur lors de l'affichage du diagnostic: {ex.Message}", "MainWindow", ex);
+                MessageBox.Show($"Erreur lors de l'affichage du diagnostic: {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         
@@ -511,7 +622,7 @@ namespace ItunesRPC
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Erreur lors de l'affichage de la notification: {ex.Message}");
+                    LoggingService.Instance.LogError($"Erreur lors de l'affichage de la notification: {ex.Message}", "MainWindow", ex);
                 }
                 
                 // Mettre à jour le statut de l'application
@@ -522,7 +633,7 @@ namespace ItunesRPC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de l'actualisation des connexions: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de l'actualisation des connexions: {ex.Message}", "MainWindow", ex);
                 if (AppStatusText != null)
                 {
                     AppStatusText.Text = $"Erreur lors de l'actualisation: {ex.Message}";
@@ -543,6 +654,9 @@ namespace ItunesRPC
                 Style = (Style)FindResource("ModernWindow"),
                 ResizeMode = ResizeMode.NoResize
             };
+            
+            // Enregistrer la fenêtre pour la propagation automatique des thèmes
+            ThemeManager.RegisterWindow(settingsWindow);
             
             // Créer le contenu de la fenêtre
             StackPanel panel = new StackPanel { Margin = new Thickness(15) };
@@ -600,47 +714,194 @@ namespace ItunesRPC
         
         private void Theme_Click(object sender, RoutedEventArgs e)
         {
-            // Utiliser la fenêtre de sélection de thème existante
-            var themeSelector = new ThemeSelector
+            try
             {
-                Owner = this,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner
-            };
-            
-            themeSelector.ShowDialog();
-            
-            // Mettre à jour le statut
-            AppStatusText.Text = $"Thème {ThemeManager.CurrentTheme} appliqué";
-            
-            // Appliquer le fond personnalisé si activé
-            ApplyCustomBackground();
+                // Créer un menu contextuel avec les options
+                var contextMenu = new ContextMenu();
+                
+                // Option pour changer le thème
+                var themeMenuItem = new MenuItem()
+                {
+                    Header = "Changer de thème",
+                    Icon = new TextBlock { Text = "🎨", FontSize = 14 }
+                };
+                themeMenuItem.Click += (s, args) =>
+                {
+                    var themeSelector = new ThemeSelector
+                    {
+                        Owner = this,
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner
+                    };
+                    
+                    themeSelector.ShowDialog();
+                    
+                    // Mettre à jour le statut
+                    AppStatusText.Text = $"Thème {ThemeManager.CurrentTheme} appliqué";
+                    
+                    // Appliquer le fond personnalisé si activé
+                    ApplyCustomBackground();
+                };
+                
+                // Option pour ouvrir la console de débogage
+                var debugMenuItem = new MenuItem()
+                {
+                    Header = "Console de débogage",
+                    Icon = new TextBlock { Text = "🔧", FontSize = 14 }
+                };
+                debugMenuItem.Click += (s, args) => OpenDebugConsole();
+                
+                // Ajouter un séparateur
+                var separator = new Separator();
+                
+                // Option pour les paramètres avancés
+                var settingsMenuItem = new MenuItem()
+                {
+                    Header = "Paramètres avancés",
+                    Icon = new TextBlock { Text = "⚙️", FontSize = 14 }
+                };
+                settingsMenuItem.Click += (s, args) => Settings_Click(s, args);
+                
+                contextMenu.Items.Add(themeMenuItem);
+                contextMenu.Items.Add(debugMenuItem);
+                contextMenu.Items.Add(separator);
+                contextMenu.Items.Add(settingsMenuItem);
+                
+                // Afficher le menu contextuel
+                if (sender is Button button)
+                {
+                    contextMenu.PlacementTarget = button;
+                    contextMenu.Placement = PlacementMode.Bottom;
+                    contextMenu.IsOpen = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                // En cas d'erreur, ouvrir directement le sélecteur de thème
+                LoggingService.Instance.LogError($"Erreur lors de l'ouverture du menu de personnalisation: {ex.Message}", "MainWindow", ex);
+                
+                var themeSelector = new ThemeSelector
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+                
+                themeSelector.ShowDialog();
+                
+                // Mettre à jour le statut
+                AppStatusText.Text = $"Thème {ThemeManager.CurrentTheme} appliqué";
+                
+                // Appliquer le fond personnalisé si activé
+                ApplyCustomBackground();
+            }
+         }
+         
+        private void OpenDebugConsole()
+        {
+            try
+            {
+                // Si la console existe déjà, la mettre au premier plan
+                if (_debugConsole != null && _debugConsole.IsLoaded)
+                {
+                    _debugConsole.Activate();
+                    _debugConsole.WindowState = WindowState.Normal;
+                    LoggingService.Instance.LogInfo("Console de débogage mise au premier plan", "MainWindow");
+                    return;
+                }
+                
+                // Créer une nouvelle instance de la console
+                _debugConsole = new DebugConsoleWindow()
+                {
+                    Owner = this,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen
+                };
+                
+                // Connecter la console au service de logging
+                LoggingService.Instance.SetConsoleWindow(_debugConsole);
+                
+                // Gérer la fermeture de la console
+                _debugConsole.Closed += (s, e) =>
+                {
+                    _debugConsole = null;
+                    LoggingService.Instance.SetConsoleWindow(null);
+                    LoggingService.Instance.LogInfo("Console de débogage fermée", "MainWindow");
+                };
+                
+                // Afficher la console
+                _debugConsole.Show();
+                
+                // Mettre à jour le statut
+                AppStatusText.Text = "Console de débogage ouverte";
+                
+                LoggingService.Instance.LogInfo("Console de débogage ouverte", "MainWindow");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError($"Erreur lors de l'ouverture de la console de débogage: {ex.Message}", "MainWindow", ex);
+                MessageBox.Show($"Impossible d'ouvrir la console de débogage: {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
-        
+         
         private void ApplyCustomBackground()
         {
             if (Properties.Settings.Default.UseCustomBackground && !string.IsNullOrEmpty(Properties.Settings.Default.CustomBackgroundPath))
             {
                 try
                 {
-                    var image = new BitmapImage(new Uri(Properties.Settings.Default.CustomBackgroundPath));
-                    var brush = new ImageBrush(image)
+                    // Charger l'image personnalisée
+                    var image = new BitmapImage();
+                    image.BeginInit();
+                    image.UriSource = new Uri(Properties.Settings.Default.CustomBackgroundPath);
+                    image.CacheOption = BitmapCacheOption.OnLoad;
+                    image.EndInit();
+                    image.Freeze();
+                    
+                    // Appliquer l'image au contrôle CustomBackgroundImage
+                    if (CustomBackgroundImage != null)
                     {
-                        Stretch = Stretch.UniformToFill,
-                        Opacity = 0.2 // Opacité réduite pour ne pas gêner la lisibilité
-                    };
-                    MainGrid.Background = brush;
+                        CustomBackgroundImage.Source = image;
+                        CustomBackgroundImage.Visibility = Visibility.Visible;
+                        
+                        // Appliquer l'opacité par défaut (sera configurable plus tard)
+                        double opacity = 0.15; // Valeur par défaut
+                        CustomBackgroundImage.Opacity = opacity;
+                    }
+                    
+                    // Afficher l'overlay pour améliorer la lisibilité
+                    if (BackgroundOverlay != null)
+                    {
+                        BackgroundOverlay.Visibility = Visibility.Visible;
+                    }
+                    
+                    LoggingService.Instance.LogInfo($"Fond d'écran personnalisé appliqué: {Path.GetFileName(Properties.Settings.Default.CustomBackgroundPath)}", "MainWindow");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Erreur lors du chargement du fond personnalisé: {ex.Message}");
-                    // En cas d'erreur, utiliser le fond par défaut
-                    MainGrid.Background = (SolidColorBrush)Application.Current.Resources["AppBackgroundBrush"];
+                    LoggingService.Instance.LogError($"Erreur lors du chargement du fond personnalisé: {ex.Message}", "MainWindow", ex);
+                    
+                    // En cas d'erreur, masquer les éléments de fond personnalisé
+                    if (CustomBackgroundImage != null)
+                    {
+                        CustomBackgroundImage.Visibility = Visibility.Collapsed;
+                        CustomBackgroundImage.Source = null;
+                    }
+                    if (BackgroundOverlay != null)
+                    {
+                        BackgroundOverlay.Visibility = Visibility.Collapsed;
+                    }
                 }
             }
             else
             {
-                // Utiliser le fond par défaut
-                MainGrid.Background = (SolidColorBrush)Application.Current.Resources["AppBackgroundBrush"];
+                // Masquer le fond personnalisé et utiliser le fond par défaut
+                if (CustomBackgroundImage != null)
+                {
+                    CustomBackgroundImage.Visibility = Visibility.Collapsed;
+                    CustomBackgroundImage.Source = null;
+                }
+                if (BackgroundOverlay != null)
+                {
+                    BackgroundOverlay.Visibility = Visibility.Collapsed;
+                }
             }
         }
         
@@ -686,7 +947,7 @@ namespace ItunesRPC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la fermeture de l'application: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la fermeture de l'application: {ex.Message}", "MainWindow", ex);
             }
             
             base.OnClosing(e);
@@ -707,7 +968,7 @@ namespace ItunesRPC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du chargement de l'image par défaut: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors du chargement de l'image par défaut: {ex.Message}", "MainWindow", ex);
             }
         }
         
@@ -723,7 +984,7 @@ namespace ItunesRPC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la sauvegarde des paramètres: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la sauvegarde des paramètres: {ex.Message}", "MainWindow", ex);
                 MessageBox.Show($"Impossible de sauvegarder les paramètres: {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -737,7 +998,7 @@ namespace ItunesRPC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la sauvegarde des paramètres: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la sauvegarde des paramètres: {ex.Message}", "MainWindow", ex);
                 MessageBox.Show($"Impossible de sauvegarder les paramètres: {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -751,7 +1012,7 @@ namespace ItunesRPC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la sauvegarde des paramètres: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la sauvegarde des paramètres: {ex.Message}", "MainWindow", ex);
                 MessageBox.Show($"Impossible de sauvegarder les paramètres: {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -773,7 +1034,7 @@ namespace ItunesRPC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la sauvegarde des paramètres: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la sauvegarde des paramètres: {ex.Message}", "MainWindow", ex);
                 if (AppStatusText != null)
                 {
                     AppStatusText.Text = $"Erreur lors de la sauvegarde: {ex.Message}";
@@ -804,7 +1065,7 @@ namespace ItunesRPC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la vérification des mises à jour: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de la vérification des mises à jour: {ex.Message}", "MainWindow", ex);
                 if (AppStatusText != null)
                 {
                     AppStatusText.Text = $"Erreur lors de la vérification: {ex.Message}";
@@ -838,7 +1099,7 @@ namespace ItunesRPC
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de l'ouverture de la configuration: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur lors de l'ouverture de la configuration: {ex.Message}", "MainWindow", ex);
                 if (AppStatusText != null)
                 {
                     AppStatusText.Text = $"Erreur lors de l'ouverture: {ex.Message}";
@@ -951,7 +1212,7 @@ namespace ItunesRPC
             
             TextBlock githubLink = new TextBlock
             {
-                Text = "https://github.com/darkiiuseai/ITunesRPC",
+                Text = "https://github.com/darkiifr/ITunesRPC",
                 Foreground = (SolidColorBrush)Application.Current.Resources["AccentBrush"],
                 TextDecorations = TextDecorations.Underline,
                 Cursor = Cursors.Hand,
@@ -963,7 +1224,7 @@ namespace ItunesRPC
                 {
                     Process.Start(new ProcessStartInfo
                     {
-                        FileName = "https://github.com/darkiiuseai/ITunesRPC",
+                        FileName = "https://github.com/darkiifr/ITunesRPC",
                         UseShellExecute = true
                     });
                 }

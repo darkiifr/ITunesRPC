@@ -49,7 +49,7 @@ namespace ItunesRPC.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("darkiiuseai")]
+        [global::System.Configuration.DefaultSettingValueAttribute("darkiifr")]
         public string GitHubOwner {
             get {
                 return ((string)(this["GitHubOwner"]));
@@ -73,7 +73,7 @@ namespace ItunesRPC.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("https://github.com/darkiiuseai/ITunesRPC/releases")]
+        [global::System.Configuration.DefaultSettingValueAttribute("https://github.com/darkiifr/ITunesRPC/releases")]
         public string GitHubReleaseUrl {
             get {
                 return ((string)(this["GitHubReleaseUrl"]));

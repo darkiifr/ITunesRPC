@@ -110,7 +110,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la vérification de santé: {ex.Message}");
+                // Erreur lors de la vérification de santé
             }
         }
 
@@ -123,7 +123,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la vérification du processus {processName}: {ex.Message}");
+                // Erreur lors de la vérification du processus
                 return false;
             }
         }
@@ -132,18 +132,18 @@ namespace ItunesRPC.Services
         {
             try
             {
-                Console.WriteLine("Initialisation du service de détection de musique...");
+                // Initialisation du service de détection de musique
                 
                 // Initialiser les services de musique
                 // ItunesService n'a pas besoin d'initialisation async
                 await _appleMusicService.InitializeAsync();
                 // Le service amélioré n'a pas besoin d'initialisation async
                 
-                Console.WriteLine("Service de détection de musique initialisé avec succès.");
+                // Service de détection de musique initialisé avec succès
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de l'initialisation du service de détection: {ex.Message}");
+                // Erreur lors de l'initialisation du service de détection
                 throw;
             }
         }
@@ -152,7 +152,7 @@ namespace ItunesRPC.Services
         {
             try
             {
-                Console.WriteLine("Démarrage du service de détection de musique...");
+                // Démarrage du service de détection de musique
                 
                 // Démarrer les services individuels
                 _itunesService.Start();
@@ -162,11 +162,11 @@ namespace ItunesRPC.Services
                 // Démarrer la vérification de santé
                 _healthCheckTimer?.Start();
                 
-                Console.WriteLine("Service de détection de musique démarré avec succès.");
+                // Service de détection de musique démarré avec succès
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du démarrage du service de détection: {ex.Message}");
+                // Erreur lors du démarrage du service de détection
                 throw;
             }
         }
@@ -175,7 +175,7 @@ namespace ItunesRPC.Services
         {
             try
             {
-                Console.WriteLine("Arrêt du service de détection de musique...");
+                // Arrêt du service de détection de musique
                 
                 // Arrêter le timer de vérification de santé
                 _healthCheckTimer?.Stop();
@@ -193,11 +193,11 @@ namespace ItunesRPC.Services
                 IsAppleMusicActive = false;
                 CurrentActiveService = "Aucun";
                 
-                Console.WriteLine("Service de détection de musique arrêté.");
+                // Service de détection de musique arrêté
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de l'arrêt du service de détection: {ex.Message}");
+                // Erreur lors de l'arrêt du service de détection
             }
         }
         
@@ -217,11 +217,11 @@ namespace ItunesRPC.Services
                 {
                     if (e.TrackInfo != null)
                     {
-                        Console.WriteLine($"Nouvelle piste Apple Music (service amélioré): {e.TrackInfo.Name} - {e.TrackInfo.Artist}");
+                        // Nouvelle piste Apple Music (service amélioré)
                     }
                     else
                     {
-                        Console.WriteLine("Apple Music (service amélioré): Aucune piste en cours");
+                        // Apple Music (service amélioré): Aucune piste en cours
                     }
                     
                     _discordRpcService.UpdatePresence(e.TrackInfo, "Apple Music");
@@ -230,7 +230,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du traitement du changement de piste Apple Music amélioré: {ex.Message}");
+                // Erreur lors du traitement du changement de piste Apple Music amélioré
             }
         }
 
@@ -240,7 +240,7 @@ namespace ItunesRPC.Services
             {
                 if (IsAppleMusicActive)
                 {
-                    Console.WriteLine($"État de lecture Apple Music amélioré changé: {(e.IsPlaying ? "En lecture" : "En pause")}");
+                    // État de lecture Apple Music amélioré changé
                     
                     if (!e.IsPlaying)
                     {
@@ -256,7 +256,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du traitement du changement d'état Apple Music amélioré: {ex.Message}");
+                // Erreur lors du traitement du changement d'état Apple Music amélioré
             }
         }
 
@@ -269,11 +269,11 @@ namespace ItunesRPC.Services
                 {
                     if (e.TrackInfo != null)
                     {
-                        Console.WriteLine($"Nouvelle piste Apple Music: {e.TrackInfo.Name} - {e.TrackInfo.Artist}");
+                        // Nouvelle piste Apple Music
                     }
                     else
                     {
-                        Console.WriteLine("Apple Music: Aucune piste en cours");
+                        // Apple Music: Aucune piste en cours
                     }
                     
                     _discordRpcService.UpdatePresence(e.TrackInfo, "Apple Music");
@@ -282,7 +282,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du traitement du changement de piste Apple Music: {ex.Message}");
+                // Erreur lors du traitement du changement de piste Apple Music
             }
         }
 
@@ -292,7 +292,7 @@ namespace ItunesRPC.Services
             {
                 if (IsAppleMusicActive)
                 {
-                    Console.WriteLine($"État de lecture Apple Music changé: {(e.IsPlaying ? "En lecture" : "En pause")}");
+                    // État de lecture Apple Music changé
                     
                     if (!e.IsPlaying)
                     {
@@ -308,7 +308,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du traitement du changement d'état Apple Music: {ex.Message}");
+                // Erreur lors du traitement du changement d'état Apple Music
             }
         }
 
@@ -321,11 +321,11 @@ namespace ItunesRPC.Services
                 {
                     if (e.TrackInfo != null)
                     {
-                        Console.WriteLine($"Nouvelle piste iTunes: {e.TrackInfo.Name} - {e.TrackInfo.Artist}");
+                        // Nouvelle piste iTunes
                     }
                     else
                     {
-                        Console.WriteLine("iTunes: Aucune piste en cours");
+                        // iTunes: Aucune piste en cours
                     }
                     
                     _discordRpcService.UpdatePresence(e.TrackInfo, "iTunes");
@@ -334,7 +334,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du traitement du changement de piste iTunes: {ex.Message}");
+                // Erreur lors du traitement du changement de piste iTunes
             }
         }
 
@@ -345,7 +345,7 @@ namespace ItunesRPC.Services
                 // iTunes n'est utilisé que si Apple Music n'est pas actif
                 if (IsItunesActive && !IsAppleMusicActive)
                 {
-                    Console.WriteLine($"État de lecture iTunes changé: {(e.IsPlaying ? "En lecture" : "En pause")}");
+                    // État de lecture iTunes changé
                     
                     if (!e.IsPlaying)
                     {
@@ -361,7 +361,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du traitement du changement d'état iTunes: {ex.Message}");
+                // Erreur lors du traitement du changement d'état iTunes
             }
         }
 
@@ -375,7 +375,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la libération des ressources: {ex.Message}");
+                // Erreur lors de la libération des ressources
             }
         }
     }

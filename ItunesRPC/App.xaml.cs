@@ -17,33 +17,37 @@ namespace ItunesRPC
         private UpdateService? _updateService;
         private bool _isExiting = false;
 
+
+
         private async void Application_Startup(object sender, StartupEventArgs e)
         {
+            
             try
             {
-                Console.WriteLine("Démarrage de l'application...");
+                // Initialiser le service de logging en premier
+                LoggingService.Instance.LogInfo("Démarrage de l'application...", "App");
                 
                 // Initialiser le service de mise à jour avec gestion d'erreur
                 try
                 {
-                    Console.WriteLine("Initialisation du service de mise à jour...");
+                    LoggingService.Instance.LogInfo("Initialisation du service de mise à jour...", "App");
                     _updateService = new UpdateService();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Erreur lors de l'initialisation du service de mise à jour: {ex.Message}");
+                    LoggingService.Instance.LogError($"Erreur lors de l'initialisation du service de mise à jour: {ex.Message}", "App", ex);
                     // Continuer sans le service de mise à jour
                 }
 
                 // Initialiser les services dans le bon ordre avec gestion d'erreur
                 try
                 {
-                    Console.WriteLine("Initialisation du service Discord RPC...");
+                    LoggingService.Instance.LogInfo("Initialisation du service Discord RPC...", "App");
                     _discordService = new DiscordRpcService();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Erreur lors de l'initialisation du service Discord: {ex.Message}");
+                    LoggingService.Instance.LogError($"Erreur lors de l'initialisation du service Discord: {ex.Message}", "App", ex);
                     // Continuer sans Discord RPC
                 }
 
@@ -52,23 +56,23 @@ namespace ItunesRPC
                 
                 try
                 {
-                    Console.WriteLine("Initialisation du service iTunes...");
+                    LoggingService.Instance.LogInfo("Initialisation du service iTunes...", "App");
                     itunesService = new ItunesService();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Erreur lors de l'initialisation du service iTunes: {ex.Message}");
+                    LoggingService.Instance.LogError($"Erreur lors de l'initialisation du service iTunes: {ex.Message}", "App", ex);
                 }
 
                 try
                 {
-                    Console.WriteLine("Initialisation du service Apple Music...");
+                    LoggingService.Instance.LogInfo("Initialisation du service Apple Music...", "App");
                     appleMusicService = new AppleMusicService();
                     await appleMusicService.InitializeAsync();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Erreur lors de l'initialisation du service Apple Music: {ex.Message}");
+                    LoggingService.Instance.LogError($"Erreur lors de l'initialisation du service Apple Music: {ex.Message}", "App", ex);
                 }
 
                 // Vérifier que les services essentiels sont initialisés
@@ -81,13 +85,13 @@ namespace ItunesRPC
 
                 try
                 {
-                    Console.WriteLine("Initialisation du service de détection de musique...");
+                    LoggingService.Instance.LogInfo("Initialisation du service de détection de musique...", "App");
                     _musicDetectionService = new MusicDetectionService(itunesService, appleMusicService, _discordService!);
                     await _musicDetectionService.InitializeAsync();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Erreur lors de l'initialisation du service de détection: {ex.Message}");
+                    LoggingService.Instance.LogError($"Erreur lors de l'initialisation du service de détection: {ex.Message}", "App", ex);
                     MessageBox.Show($"Erreur critique lors de l'initialisation: {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
                     Shutdown();
                     return;
@@ -96,7 +100,7 @@ namespace ItunesRPC
                 // Créer l'icône de notification avec gestion d'erreur
                 try
                 {
-                    Console.WriteLine("Création de l'icône de notification...");
+                    LoggingService.Instance.LogInfo("Création de l'icône de notification...", "App");
                     _notifyIcon = (TaskbarIcon)FindResource("NotifyIcon");
                     if (_notifyIcon != null)
                     {
@@ -105,14 +109,14 @@ namespace ItunesRPC
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Erreur lors de la création de l'icône de notification: {ex.Message}");
+                    LoggingService.Instance.LogError($"Erreur lors de la création de l'icône de notification: {ex.Message}", "App", ex);
                     // Continuer sans icône de notification
                 }
 
                 // Créer et afficher la fenêtre principale avec gestion d'erreur
                 try
                 {
-                    Console.WriteLine("Création de la fenêtre principale...");
+                    LoggingService.Instance.LogInfo("Création de la fenêtre principale...", "App");
                     _mainWindow = new MainWindow(_musicDetectionService, _discordService!, _updateService!);
                     if (_mainWindow != null)
                     {
@@ -122,7 +126,7 @@ namespace ItunesRPC
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Erreur lors de la création de la fenêtre principale: {ex.Message}");
+                    LoggingService.Instance.LogError($"Erreur lors de la création de la fenêtre principale: {ex.Message}", "App", ex);
                     MessageBox.Show($"Erreur critique lors de la création de l'interface: {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
                     Shutdown();
                     return;
@@ -131,32 +135,32 @@ namespace ItunesRPC
                 // Démarrer le service de détection de musique avec gestion d'erreur
                 try
                 {
-                    Console.WriteLine("Démarrage du service de détection de musique...");
+                    LoggingService.Instance.LogInfo("Démarrage du service de détection de musique...", "App");
                     _musicDetectionService?.Start();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Erreur lors du démarrage du service de détection: {ex.Message}");
+                    LoggingService.Instance.LogError($"Erreur lors du démarrage du service de détection: {ex.Message}", "App", ex);
                     // Continuer même si le service ne démarre pas
                 }
 
                 // Configurer le démarrage automatique si nécessaire avec gestion d'erreur
                 try
                 {
-                    Console.WriteLine("Configuration du démarrage automatique...");
+                    LoggingService.Instance.LogInfo("Configuration du démarrage automatique...", "App");
                     ConfigureAutoStart();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Erreur lors de la configuration du démarrage automatique: {ex.Message}");
+                    LoggingService.Instance.LogError($"Erreur lors de la configuration du démarrage automatique: {ex.Message}", "App", ex);
                     // Continuer même si la configuration échoue
                 }
                 
-                Console.WriteLine("Application démarrée avec succès.");
+                LoggingService.Instance.LogInfo("Application démarrée avec succès", "App");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur critique lors du démarrage de l'application: {ex.Message}");
+                LoggingService.Instance.LogError($"Erreur critique lors du démarrage de l'application: {ex.Message}", "App", ex);
                 MessageBox.Show($"Erreur critique lors du démarrage: {ex.Message}\n\nStack trace: {ex.StackTrace}", "Erreur critique", MessageBoxButton.OK, MessageBoxImage.Error);
                 Shutdown();
             }

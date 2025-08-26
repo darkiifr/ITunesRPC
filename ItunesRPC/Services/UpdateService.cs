@@ -1,5 +1,6 @@
 using Octokit;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -7,6 +8,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -17,7 +20,7 @@ namespace ItunesRPC.Services
 {
     public class UpdateService : IDisposable
     {
-        private string _owner = "darkiiuseai";
+        private string _owner = "darkiifr";
         private string _repo = "ITunesRPC";
         private readonly Version _currentVersion;
         private readonly HttpClient _httpClient;
@@ -25,7 +28,7 @@ namespace ItunesRPC.Services
         private bool _disposed = false;
         
         // URL de base pour les releases GitHub
-        private string _githubReleaseUrl = "https://github.com/darkiiuseai/ITunesRPC/releases";
+        private string _githubReleaseUrl = "https://github.com/darkiifr/ITunesRPC/releases";
         
         // Configuration des timeouts et retry
         private const int MaxRetryAttempts = 3;
@@ -67,7 +70,7 @@ namespace ItunesRPC.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors du chargement des paramètres de mise à jour: {ex.Message}");
+                // Erreur lors du chargement des paramètres de mise à jour
             }
         }
         
@@ -146,11 +149,10 @@ namespace ItunesRPC.Services
             try
             {
                 UpdateStatusChanged?.Invoke(this, status);
-                Console.WriteLine($"[UpdateService] {DateTime.Now:HH:mm:ss} - {status}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Erreur lors de la notification de statut: {ex.Message}");
+                // Erreur lors de la notification de statut
             }
         }
         
@@ -173,6 +175,97 @@ namespace ItunesRPC.Services
             
             var bytesPerSecond = totalDownloadedBytes / elapsedSeconds;
             return bytesPerSecond / (1024.0 * 1024.0); // Convertir en MB/s
+        }
+
+        private async Task<string> CalculateFileChecksumAsync(string filePath)
+        {
+            try
+            {
+                using var sha256 = SHA256.Create();
+                using var stream = File.OpenRead(filePath);
+                var hashBytes = await Task.Run(() => sha256.ComputeHash(stream)).ConfigureAwait(false);
+                return Convert.ToHexString(hashBytes).ToLowerInvariant();
+            }
+            catch (Exception ex)
+            {
+                // Erreur lors du calcul du checksum
+                return string.Empty;
+            }
+        }
+
+        private async Task<string?> GetExpectedChecksumAsync(Release release, string assetName)
+        {
+            try
+            {
+                // Chercher un fichier de checksum dans les assets (SHA256SUMS, checksums.txt, etc.)
+                var checksumAssets = release.Assets.Where(a => 
+                    a.Name.ToLower().Contains("checksum") || 
+                    a.Name.ToLower().Contains("sha256") ||
+                    a.Name.ToLower().Contains("hash") ||
+                    a.Name.EndsWith(".sha256") ||
+                    a.Name.EndsWith(".md5") ||
+                    a.Name.EndsWith(".txt") && (a.Name.ToLower().Contains("sum") || a.Name.ToLower().Contains("hash"))
+                ).ToList();
+
+                foreach (var checksumAsset in checksumAssets)
+                {
+                    try
+                    {
+                        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                        var response = await _httpClient.GetStringAsync(checksumAsset.BrowserDownloadUrl, cts.Token).ConfigureAwait(false);
+                        
+                        // Analyser le contenu du fichier de checksum
+                        var lines = response.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                        foreach (var line in lines)
+                        {
+                            var parts = line.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (parts.Length >= 2)
+                            {
+                                var hash = parts[0];
+                                var fileName = parts[1].TrimStart('*'); // Enlever le * des fichiers binaires
+                                
+                                if (fileName.Equals(assetName, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    return hash.ToLowerInvariant();
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Erreur lors de la lecture du fichier de checksum
+                    }
+                }
+                
+                // Chercher dans la description de la release
+                if (!string.IsNullOrEmpty(release.Body))
+                {
+                    var lines = release.Body.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var line in lines)
+                    {
+                        if (line.ToLower().Contains(assetName.ToLower()) && 
+                            (line.ToLower().Contains("sha256") || line.ToLower().Contains("checksum")))
+                        {
+                            // Extraire le hash de la ligne (chercher une chaîne de 64 caractères hexadécimaux)
+                            var words = line.Split(new[] { ' ', '\t', ':', '|', '-' }, StringSplitOptions.RemoveEmptyEntries);
+                            foreach (var word in words)
+                            {
+                                if (word.Length == 64 && word.All(c => char.IsDigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
+                                {
+                                    return word.ToLowerInvariant();
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                // Erreur lors de la récupération du checksum attendu
+                return null;
+            }
         }
         
         public async Task CheckForUpdatesAsync(bool showNoUpdateMessage = false)
@@ -430,7 +523,7 @@ namespace ItunesRPC.Services
                             MessageBoxImage.Error);
                     });
                 }
-                Console.WriteLine($"Erreur lors de la vérification des mises à jour: {ex.Message}");
+                // Erreur lors de la vérification des mises à jour
             }
             finally
             {
@@ -461,10 +554,17 @@ namespace ItunesRPC.Services
         {
             string platformName = GetPlatformAssetName();
             
+            // Filtrer les assets compatibles avec la plateforme actuelle
+            var compatibleAssets = FilterCompatibleAssets(release.Assets, platformName);
+            
+            if (!compatibleAssets.Any())
+            {
+                return null;
+            }
+            
             // Chercher d'abord un asset spécifique à la plateforme
-            var platformAsset = release.Assets.FirstOrDefault(a => 
-                a.Name.ToLower().Contains(platformName) && 
-                (a.Name.EndsWith(".zip") || a.Name.EndsWith(".exe")));
+            var platformAsset = compatibleAssets.FirstOrDefault(a => 
+                a.Name.ToLower().Contains(platformName));
             
             if (platformAsset != null)
                 return platformAsset;
@@ -472,14 +572,85 @@ namespace ItunesRPC.Services
             // Si pas d'asset spécifique, chercher par extension selon la plateforme
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                // Pour Windows, priorité aux .exe puis .zip
-                return release.Assets.FirstOrDefault(a => a.Name.EndsWith(".exe")) 
-                    ?? release.Assets.FirstOrDefault(a => a.Name.EndsWith(".zip"));
+                // Pour Windows, priorité aux .exe puis .zip (mais éviter les .exe Linux/Mac)
+                return compatibleAssets.FirstOrDefault(a => a.Name.EndsWith(".exe")) 
+                    ?? compatibleAssets.FirstOrDefault(a => a.Name.EndsWith(".zip"));
             }
             else
             {
-                // Pour Linux/Mac, priorité aux .zip
-                return release.Assets.FirstOrDefault(a => a.Name.EndsWith(".zip"));
+                // Pour Linux/Mac, priorité aux .zip (éviter les .exe Windows)
+                return compatibleAssets.FirstOrDefault(a => a.Name.EndsWith(".zip"));
+            }
+        }
+        
+        private IEnumerable<ReleaseAsset> FilterCompatibleAssets(IEnumerable<ReleaseAsset> assets, string currentPlatform)
+        {
+            var filteredAssets = new List<ReleaseAsset>();
+            
+            foreach (var asset in assets)
+            {
+                string assetName = asset.Name.ToLower();
+                
+                // Vérifier si l'asset est compatible avec la plateforme actuelle
+                if (IsAssetCompatibleWithPlatform(assetName, currentPlatform))
+                {
+                    filteredAssets.Add(asset);
+                }
+            }
+            
+            return filteredAssets;
+        }
+        
+        private bool IsAssetCompatibleWithPlatform(string assetName, string currentPlatform)
+        {
+            // Extensions supportées
+            if (!assetName.EndsWith(".zip") && !assetName.EndsWith(".exe") && 
+                !assetName.EndsWith(".dmg") && !assetName.EndsWith(".deb") && 
+                !assetName.EndsWith(".rpm") && !assetName.EndsWith(".appimage"))
+            {
+                return false;
+            }
+            
+            // Règles spécifiques par plateforme
+            switch (currentPlatform)
+            {
+                case "windows":
+                    // Windows accepte .exe et .zip, mais évite les fichiers spécifiquement Linux/Mac
+                    if (assetName.Contains("linux") || assetName.Contains("mac") || assetName.Contains("osx") ||
+                        assetName.EndsWith(".dmg") || assetName.EndsWith(".deb") || 
+                        assetName.EndsWith(".rpm") || assetName.EndsWith(".appimage"))
+                    {
+                        return false;
+                    }
+                    return assetName.EndsWith(".exe") || assetName.EndsWith(".zip");
+                    
+                case "linux":
+                    // Linux accepte .zip et formats Linux, mais évite .exe Windows et .dmg Mac
+                    if (assetName.Contains("windows") || assetName.Contains("win") || 
+                        assetName.Contains("mac") || assetName.Contains("osx") ||
+                        assetName.EndsWith(".exe") || assetName.EndsWith(".dmg"))
+                    {
+                        return false;
+                    }
+                    return assetName.EndsWith(".zip") || assetName.EndsWith(".deb") || 
+                           assetName.EndsWith(".rpm") || assetName.EndsWith(".appimage");
+                    
+                case "mac":
+                    // Mac accepte .zip et .dmg, mais évite .exe Windows et formats Linux
+                    if (assetName.Contains("windows") || assetName.Contains("win") || 
+                        assetName.Contains("linux") || assetName.EndsWith(".exe") ||
+                        assetName.EndsWith(".deb") || assetName.EndsWith(".rpm") || 
+                        assetName.EndsWith(".appimage"))
+                    {
+                        return false;
+                    }
+                    return assetName.EndsWith(".zip") || assetName.EndsWith(".dmg");
+                    
+                default:
+                    // Par défaut, accepter seulement les .zip universels
+                    return assetName.EndsWith(".zip") && 
+                           !assetName.Contains("windows") && !assetName.Contains("linux") && 
+                           !assetName.Contains("mac") && !assetName.Contains("osx");
             }
         }
 
@@ -505,9 +676,15 @@ namespace ItunesRPC.Services
                     NotifyUpdateStatus("Aucun fichier d'installation trouvé pour cette plateforme");
                     string platformName = GetPlatformAssetName();
                     
+                    // Créer un message détaillé avec les assets disponibles
+                    var availableAssets = string.Join(", ", release.Assets.Select(a => a.Name));
+                    var detailedMessage = $"Aucun fichier d'installation compatible trouvé pour {platformName}.\n\n" +
+                                         $"Fichiers disponibles dans cette version:\n{availableAssets}\n\n" +
+                                         $"Le système évite automatiquement les fichiers incompatibles (ex: .exe Linux sur Windows).";
+                    
                     await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        MessageBox.Show($"Aucun fichier d'installation trouvé pour {platformName} dans cette version.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(detailedMessage, "Aucun fichier compatible", MessageBoxButton.OK, MessageBoxImage.Warning);
                     });
                     return;
                 }
@@ -605,6 +782,60 @@ namespace ItunesRPC.Services
 
                 NotifyUpdateStatus("Téléchargement terminé");
 
+                // Vérification du checksum si disponible
+                NotifyUpdateStatus("Vérification de l'intégrité du fichier...");
+                var expectedChecksum = await GetExpectedChecksumAsync(release, asset.Name).ConfigureAwait(false);
+                
+                if (!string.IsNullOrEmpty(expectedChecksum))
+                {
+                    var actualChecksum = await CalculateFileChecksumAsync(downloadPath).ConfigureAwait(false);
+                    
+                    if (string.IsNullOrEmpty(actualChecksum))
+                    {
+                        NotifyUpdateStatus("Erreur lors du calcul du checksum");
+                        await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            MessageBox.Show("Impossible de vérifier l'intégrité du fichier téléchargé.", "Erreur de vérification", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        });
+                        // Continuer malgré l'erreur de checksum
+                    }
+                    else if (!actualChecksum.Equals(expectedChecksum, StringComparison.OrdinalIgnoreCase))
+                    {
+                        NotifyUpdateStatus("Checksum invalide - fichier corrompu");
+                        await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            MessageBox.Show(
+                                $"Le fichier téléchargé est corrompu ou a été modifié.\n\nChecksum attendu: {expectedChecksum}\nChecksum calculé: {actualChecksum}\n\nLe téléchargement sera annulé pour votre sécurité.",
+                                "Fichier corrompu",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+                        });
+                        return;
+                    }
+                    else
+                    {
+                        NotifyUpdateStatus("Vérification d'intégrité réussie");
+                    }
+                }
+                else
+                {
+                    NotifyUpdateStatus("Aucun checksum disponible - vérification ignorée");
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        var result = MessageBox.Show(
+                            "Aucun checksum n'est disponible pour vérifier l'intégrité du fichier téléchargé.\n\nVoulez-vous continuer l'installation malgré tout?",
+                            "Vérification d'intégrité",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Question);
+                        
+                        if (result == MessageBoxResult.No)
+                        {
+                            NotifyUpdateStatus("Installation annulée par l'utilisateur");
+                            return;
+                        }
+                    });
+                }
+
                 // Traitement selon le type de fichier
                 if (asset.Name.EndsWith(".zip"))
                 {
@@ -638,7 +869,7 @@ namespace ItunesRPC.Services
                 {
                     MessageBox.Show($"Erreur lors de la mise à jour: {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
                 });
-                Console.WriteLine($"Erreur lors de la mise à jour: {ex}");
+                // Erreur lors de la mise à jour
             }
             finally
             {
@@ -651,7 +882,7 @@ namespace ItunesRPC.Services
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Impossible de supprimer le dossier temporaire: {ex.Message}");
+                        // Impossible de supprimer le dossier temporaire
                     }
                 }
             }
@@ -696,8 +927,9 @@ namespace ItunesRPC.Services
                 
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    // Sur Windows, chercher un fichier exécutable
+                    // Sur Windows, chercher un fichier exécutable et les fichiers PDB
                     var exeFiles = Directory.GetFiles(extractFolder, "*.exe", SearchOption.AllDirectories);
+                    var pdbFiles = Directory.GetFiles(extractFolder, "*.pdb", SearchOption.AllDirectories);
                     
                     if (exeFiles.Length == 0)
                     {
@@ -733,41 +965,62 @@ namespace ItunesRPC.Services
                     // Prendre le premier exécutable trouvé (ou celui qui correspond au nom de l'app)
                     string exePath = exeFiles.FirstOrDefault(f => Path.GetFileName(f).ToLower().Contains("itunes")) ?? exeFiles[0];
                     NotifyUpdateStatus($"Exécutable trouvé: {Path.GetFileName(exePath)}");
-                    await HandleExeUpdate(exePath).ConfigureAwait(false);
+                    
+                    // Remplacer automatiquement l'exécutable et les fichiers PDB
+                    await ReplaceExecutableAndPdbAsync(exePath, pdbFiles, extractFolder).ConfigureAwait(false);
                 }
                 else
                 {
-                    // Sur Linux/Mac, proposer d'ouvrir le dossier d'extraction
-                    NotifyUpdateStatus("Archive extraite avec succès");
+                    // Sur Linux/Mac, chercher l'exécutable principal
+                    var executableFiles = Directory.GetFiles(extractFolder, "*", SearchOption.AllDirectories)
+                        .Where(f => !Path.HasExtension(f) || 
+                               Path.GetExtension(f).ToLower() == ".app" ||
+                               Path.GetFileName(f).ToLower().Contains("itunes"))
+                        .ToArray();
                     
-                    var result = await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    if (executableFiles.Length > 0)
                     {
-                        return MessageBox.Show(
-                            $"L'archive a été extraite dans:\n{extractFolder}\n\nVoulez-vous ouvrir ce dossier pour installer manuellement la mise à jour?",
-                            "Extraction terminée",
-                            MessageBoxButton.YesNo,
-                            MessageBoxImage.Information);
-                    });
-                    
-                    if (result == MessageBoxResult.Yes)
+                        // Tenter le remplacement automatique sur Linux/Mac
+                        string mainExecutable = executableFiles.FirstOrDefault(f => 
+                            Path.GetFileName(f).ToLower().Contains("itunes")) ?? executableFiles[0];
+                        
+                        NotifyUpdateStatus($"Exécutable trouvé: {Path.GetFileName(mainExecutable)}");
+                        await ReplaceExecutableUnixAsync(mainExecutable, extractFolder).ConfigureAwait(false);
+                    }
+                    else
                     {
-                        try
+                        // Fallback: proposer d'ouvrir le dossier d'extraction
+                        NotifyUpdateStatus("Archive extraite avec succès");
+                        
+                        var result = await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                         {
-                            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                            {
-                                Process.Start("xdg-open", extractFolder);
-                            }
-                            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                            {
-                                Process.Start("open", extractFolder);
-                            }
-                        }
-                        catch (Exception ex)
+                            return MessageBox.Show(
+                                $"L'archive a été extraite dans:\n{extractFolder}\n\nAucun exécutable reconnu trouvé. Voulez-vous ouvrir ce dossier pour installer manuellement la mise à jour?",
+                                "Extraction terminée",
+                                MessageBoxButton.YesNo,
+                                MessageBoxImage.Information);
+                        });
+                        
+                        if (result == MessageBoxResult.Yes)
                         {
-                            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                            try
                             {
-                                MessageBox.Show($"Impossible d'ouvrir le dossier: {ex.Message}\n\nChemin: {extractFolder}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Warning);
-                            });
+                                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                                {
+                                    Process.Start("xdg-open", extractFolder);
+                                }
+                                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                                {
+                                    Process.Start("open", extractFolder);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                                {
+                                    MessageBox.Show($"Impossible d'ouvrir le dossier: {ex.Message}\n\nChemin: {extractFolder}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                });
+                            }
                         }
                     }
                 }
@@ -798,7 +1051,230 @@ namespace ItunesRPC.Services
             }
         }
 
-        private async Task HandleExeUpdate(string exePath)
+        private async Task ReplaceExecutableAndPdbAsync(string newExePath, string[] pdbFiles, string extractFolder)
+        {
+            try
+            {
+                NotifyUpdateStatus("Préparation du remplacement automatique...");
+                
+                // Obtenir le chemin de l'exécutable actuel
+                string currentExePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                string currentDirectory = Path.GetDirectoryName(currentExePath) ?? Environment.CurrentDirectory;
+                string currentExeName = Path.GetFileName(currentExePath);
+                
+                // Demander confirmation à l'utilisateur
+                var result = await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    return MessageBox.Show(
+                        $"La mise à jour va remplacer automatiquement l'exécutable et les fichiers associés.\n\nFichiers à remplacer:\n- {currentExeName}\n- {pdbFiles.Length} fichier(s) PDB\n\nL'application va se fermer pour permettre la mise à jour.\n\nContinuer?",
+                        "Remplacement automatique",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question);
+                });
+                
+                if (result != MessageBoxResult.Yes)
+                {
+                    NotifyUpdateStatus("Mise à jour annulée par l'utilisateur");
+                    return;
+                }
+                
+                // Créer un script batch pour effectuer le remplacement après fermeture de l'application
+                string batchPath = Path.Combine(Path.GetTempPath(), "ItunesRPC_Update.bat");
+                string backupFolder = Path.Combine(currentDirectory, "backup_" + DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+                
+                var batchContent = new System.Text.StringBuilder();
+                batchContent.AppendLine("@echo off");
+                batchContent.AppendLine("echo Mise à jour d'ItunesRPC en cours...");
+                batchContent.AppendLine("timeout /t 2 /nobreak > nul");
+                batchContent.AppendLine();
+                
+                // Créer le dossier de sauvegarde
+                batchContent.AppendLine($"mkdir \"{backupFolder}\"");
+                
+                // Sauvegarder l'ancien exécutable
+                batchContent.AppendLine($"copy \"{currentExePath}\" \"{backupFolder}\"");
+                
+                // Sauvegarder les anciens fichiers PDB s'ils existent
+                string currentPdbPath = Path.ChangeExtension(currentExePath, ".pdb");
+                if (File.Exists(currentPdbPath))
+                {
+                    batchContent.AppendLine($"copy \"{currentPdbPath}\" \"{backupFolder}\"");
+                }
+                
+                // Remplacer l'exécutable
+                batchContent.AppendLine($"copy \"{newExePath}\" \"{currentExePath}\"");
+                
+                // Remplacer les fichiers PDB
+                foreach (string pdbFile in pdbFiles)
+                {
+                    string pdbFileName = Path.GetFileName(pdbFile);
+                    string targetPdbPath = Path.Combine(currentDirectory, pdbFileName);
+                    batchContent.AppendLine($"copy \"{pdbFile}\" \"{targetPdbPath}\"");
+                }
+                
+                batchContent.AppendLine();
+                batchContent.AppendLine("echo Mise à jour terminée!");
+                batchContent.AppendLine($"echo Sauvegarde créée dans: {backupFolder}");
+                
+                // Relancer l'application
+                batchContent.AppendLine($"start \"\" \"{currentExePath}\"");
+                
+                // Nettoyer les fichiers temporaires
+                batchContent.AppendLine($"timeout /t 2 /nobreak > nul");
+                batchContent.AppendLine($"rmdir /s /q \"{extractFolder}\"");
+                batchContent.AppendLine($"del \"{batchPath}\"");
+                
+                // Écrire le script batch
+                await File.WriteAllTextAsync(batchPath, batchContent.ToString()).ConfigureAwait(false);
+                
+                NotifyUpdateStatus("Lancement du processus de mise à jour...");
+                
+                // Lancer le script batch
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = batchPath,
+                    UseShellExecute = true,
+                    WindowStyle = ProcessWindowStyle.Normal,
+                    CreateNoWindow = false
+                };
+                
+                Process.Start(startInfo);
+                
+                // Attendre un peu pour s'assurer que le processus démarre
+                await Task.Delay(1000).ConfigureAwait(false);
+                
+                // Fermer l'application actuelle
+                NotifyUpdateStatus("Fermeture de l'application pour mise à jour...");
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    System.Windows.Application.Current.Shutdown();
+                });
+            }
+            catch (Exception ex)
+            {
+                NotifyUpdateStatus($"Erreur lors du remplacement: {ex.Message}");
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    MessageBox.Show($"Erreur lors du remplacement automatique: {ex.Message}\n\nVeuillez effectuer la mise à jour manuellement.", "Erreur de mise à jour", MessageBoxButton.OK, MessageBoxImage.Error);
+                });
+            }
+        }
+         
+         private async Task ReplaceExecutableUnixAsync(string newExecutablePath, string extractFolder)
+         {
+             try
+             {
+                 NotifyUpdateStatus("Préparation du remplacement automatique (Unix)...");
+                 
+                 // Obtenir le chemin de l'exécutable actuel
+                 string currentExePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                 string currentDirectory = Path.GetDirectoryName(currentExePath) ?? Environment.CurrentDirectory;
+                 string currentExeName = Path.GetFileName(currentExePath);
+                 
+                 // Demander confirmation à l'utilisateur
+                 var result = await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                 {
+                     return MessageBox.Show(
+                         $"La mise à jour va remplacer automatiquement l'exécutable.\n\nFichier à remplacer:\n- {currentExeName}\n\nL'application va se fermer pour permettre la mise à jour.\n\nContinuer?",
+                         "Remplacement automatique",
+                         MessageBoxButton.YesNo,
+                         MessageBoxImage.Question);
+                 });
+                 
+                 if (result != MessageBoxResult.Yes)
+                 {
+                     NotifyUpdateStatus("Mise à jour annulée par l'utilisateur");
+                     return;
+                 }
+                 
+                 // Créer un script shell pour effectuer le remplacement après fermeture de l'application
+                 string scriptPath = Path.Combine(Path.GetTempPath(), "ItunesRPC_Update.sh");
+                 string backupFolder = Path.Combine(currentDirectory, "backup_" + DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+                 
+                 var scriptContent = new System.Text.StringBuilder();
+                 scriptContent.AppendLine("#!/bin/bash");
+                 scriptContent.AppendLine("echo \"Mise à jour d'ItunesRPC en cours...\"");
+                 scriptContent.AppendLine("sleep 2");
+                 scriptContent.AppendLine();
+                 
+                 // Créer le dossier de sauvegarde
+                 scriptContent.AppendLine($"mkdir -p \"{backupFolder}\"");
+                 
+                 // Sauvegarder l'ancien exécutable
+                 scriptContent.AppendLine($"cp \"{currentExePath}\" \"{backupFolder}/\"");
+                 
+                 // Remplacer l'exécutable
+                 scriptContent.AppendLine($"cp \"{newExecutablePath}\" \"{currentExePath}\"");
+                 
+                 // Rendre l'exécutable exécutable
+                 scriptContent.AppendLine($"chmod +x \"{currentExePath}\"");
+                 
+                 scriptContent.AppendLine();
+                 scriptContent.AppendLine("echo \"Mise à jour terminée!\"");
+                 scriptContent.AppendLine($"echo \"Sauvegarde créée dans: {backupFolder}\"");
+                 
+                 // Relancer l'application
+                 scriptContent.AppendLine($"\"{currentExePath}\" &");
+                 
+                 // Nettoyer les fichiers temporaires
+                 scriptContent.AppendLine("sleep 2");
+                 scriptContent.AppendLine($"rm -rf \"{extractFolder}\"");
+                 scriptContent.AppendLine($"rm \"{scriptPath}\"");
+                 
+                 // Écrire le script shell
+                 await File.WriteAllTextAsync(scriptPath, scriptContent.ToString()).ConfigureAwait(false);
+                 
+                 // Rendre le script exécutable
+                 try
+                 {
+                     var chmodProcess = new ProcessStartInfo
+                     {
+                         FileName = "chmod",
+                         Arguments = $"+x \"{scriptPath}\"",
+                         UseShellExecute = false,
+                         CreateNoWindow = true
+                     };
+                     Process.Start(chmodProcess)?.WaitForExit();
+                 }
+                 catch (Exception ex)
+                 {
+                     System.Diagnostics.Debug.WriteLine($"Erreur lors du chmod: {ex.Message}");
+                 }
+                 
+                 NotifyUpdateStatus("Lancement du processus de mise à jour...");
+                 
+                 // Lancer le script shell
+                 var startInfo = new ProcessStartInfo
+                 {
+                     FileName = "/bin/bash",
+                     Arguments = $"\"{scriptPath}\"",
+                     UseShellExecute = false,
+                     CreateNoWindow = true
+                 };
+                 
+                 Process.Start(startInfo);
+                 
+                 // Attendre un peu pour s'assurer que le processus démarre
+                 await Task.Delay(1000).ConfigureAwait(false);
+                 
+                 // Fermer l'application actuelle
+                 NotifyUpdateStatus("Fermeture de l'application pour mise à jour...");
+                 await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                 {
+                     System.Windows.Application.Current.Shutdown();
+                 });
+             }
+             catch (Exception ex)
+             {
+                 NotifyUpdateStatus($"Erreur lors du remplacement: {ex.Message}");
+                 await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                 {
+                     MessageBox.Show($"Erreur lors du remplacement automatique: {ex.Message}\n\nVeuillez effectuer la mise à jour manuellement.", "Erreur de mise à jour", MessageBoxButton.OK, MessageBoxImage.Error);
+                 });
+             }
+         }
+         
+         private async Task HandleExeUpdate(string exePath)
         {
             try
             {
@@ -878,7 +1354,7 @@ namespace ItunesRPC.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Erreur lors de la libération des ressources: {ex.Message}");
+                    // Erreur lors de la libération des ressources
                 }
                 finally
                 {

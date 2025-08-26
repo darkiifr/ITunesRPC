@@ -82,7 +82,7 @@ namespace ItunesRPC.Services
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Erreur lors de la détection de {processName}: {ex.Message}");
+                        // Erreur lors de la détection
                     }
                 }
             }

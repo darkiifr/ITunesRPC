@@ -5,12 +5,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ItunesRPC"
         mc:Ignorable="d"
-        Title="iTunes RPC" Height="520" Width="900"
+        Title="iTunes RPC" Height="650" Width="1100"
         Icon="pack://application:,,,/Resources/icon.ico" 
         Style="{StaticResource ModernWindow}"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResize"
-        MinWidth="800" MinHeight="500"
+        MinWidth="900" MinHeight="600"
         Loaded="Window_Loaded">
     
     <Window.Resources>
@@ -152,8 +152,8 @@
                                          Background="{StaticResource ProgressBarBackgroundBrush}" Foreground="{StaticResource AccentBrush}"
                                          BorderThickness="0" VerticalAlignment="Center"/>
                             
-                            <!-- Temps restant -->
-                            <TextBlock x:Name="RemainingTimeText" Grid.Column="2" Text="-00:00" Foreground="{StaticResource TextPrimaryBrush}" 
+                            <!-- Durée totale -->
+                            <TextBlock x:Name="RemainingTimeText" Grid.Column="2" Text="00:00" Foreground="{StaticResource TextPrimaryBrush}" 
                                        FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center"/>
                         </Grid>
                     </StackPanel>
@@ -233,7 +233,8 @@
                 </StackPanel>
                 
                 <StackPanel Grid.Column="3" Orientation="Horizontal">
-                    <Button x:Name="ReconnectButton" Content="Reconnecter" Style="{StaticResource SmallButton}" Margin="0,0,0,0" Click="ReconnectDiscord_Click" IsEnabled="False"/>
+                    <Button x:Name="ReconnectButton" Content="Reconnecter" Style="{StaticResource SmallButton}" Margin="0,0,5,0" Click="ReconnectDiscord_Click" IsEnabled="False"/>
+                    <Button x:Name="DiagnosticButton" Content="Diagnostic" Style="{StaticResource SmallButton}" Margin="0,0,0,0" Click="Diagnostic_Click" ToolTip="Afficher les informations de diagnostic Discord"/>
                 </StackPanel>
             </Grid>
         </Border>

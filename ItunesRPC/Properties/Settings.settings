@@ -9,13 +9,13 @@
       <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="GitHubOwner" Type="System.String" Scope="User">
-      <Value Profile="(Default)">darkiiuseai</Value>
+      <Value Profile="(Default)">darkiifr</Value>
     </Setting>
     <Setting Name="GitHubRepo" Type="System.String" Scope="User">
       <Value Profile="(Default)">ITunesRPC</Value>
     </Setting>
     <Setting Name="GitHubReleaseUrl" Type="System.String" Scope="User">
-      <Value Profile="(Default)">https://github.com/darkiiuseai/ITunesRPC/releases</Value>
+      <Value Profile="(Default)">https://github.com/darkiifr/ITunesRPC/releases</Value>
     </Setting>
     <Setting Name="CheckUpdateOnStartup" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
@@ -31,6 +31,9 @@
     </Setting>
     <Setting Name="CustomBackgroundPath" Type="System.String" Scope="User">
       <Value Profile="(Default)"></Value>
+    </Setting>
+    <Setting Name="BackgroundOpacity" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">0.15</Value>
     </Setting>
   </Settings>
 </SettingsFile>

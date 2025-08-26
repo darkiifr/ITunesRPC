@@ -24,7 +24,7 @@ Une application WPF qui affiche les informations des musiques écoutées sur iTu
 
 ## Installation
 
-1. Téléchargez la dernière version depuis la [page des releases](https://github.com/darkiiuseai/ITunesRPC/releases)
+1. Téléchargez la dernière version depuis la [page des releases](https://github.com/darkiifr/ITunesRPC/releases)
 2. Exécutez le fichier d'installation
 3. L'application démarrera automatiquement après l'installation
 
